@@ -1,0 +1,22 @@
+.linebtc {
+  fill: none;
+  stroke: red;
+  stroke-width: 2px;
+}
+
+.lineeth {
+  fill: none;
+  stroke: blue;
+  stroke-width: 4px;
+}
+.yeth {
+  fill: blue;
+}
+
+.ybtc {
+  fill: red;
+}
+
+.area {
+  fill: lightsteelblue;
+}

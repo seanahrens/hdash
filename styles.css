@@ -1,0 +1,67 @@
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line, 
+.axis1 path,
+.axis1 line {
+  fill: none;
+  stroke: #E6E7E8;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path, .x.axis1 path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+.legend-box {
+  cursor: pointer;  
+}
+
+#mouse-tracker {
+  stroke: #E6E7E8;
+  stroke-width: 1px;
+}
+
+.hover-line { 
+  stroke: #000;
+  fill: none;
+  stroke-width: 1.5px;
+  left: 10px;
+  shape-rendering: crispEdges;
+  /*opacity: 1e-6;*/
+}
+
+.hover-text {
+  /*font-size: 14px; */
+  font-weight: normal;
+  fill: #000;
+  stroke-width: 0px;
+}
+
+.tooltip {
+  font-weight: normal;
+}
+
+/*.timeStrip {*/
+/*  stroke: black;*/
+/*}*/
+
+.brush .extent {
+  stroke: green;
+  fill: lightgreen;
+  shape-rendering: crispEdges;
+}
+
+.brush {
+  stroke: green;
+  fill: lightgreen;
+  shape-rendering: crispEdges;
+}
+
