@@ -13,8 +13,8 @@
 
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
-      chart_width = 600,
-      scrubber_margin = { top: 0, bottom: 20, right: 0, left: 0},
+      chart_width = 500,
+      scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
       scrubber_height = 30,
       scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
       graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
@@ -30,7 +30,7 @@ var bisectDate = d3.bisector(function(d) { return d.date; }).left;
 var xScale = d3.time.scale()
     .range([0, graph_width]),
 
-    xScale2 = d3.time.scale()
+    scrubberxScale = d3.time.scale()
     .range([0, graph_width]); // Duplicate xScale for brushing ref later
 
 var yScale = d3.scale.linear()
@@ -40,13 +40,43 @@ var yScale = d3.scale.linear()
 //var color = d3.scale.ordinal().range(["#48A36D",  "#56AE7C",  "#64B98C", "#72C39B", "#80CEAA", "#80CCB3", "#7FC9BD", "#7FC7C6", "#7EC4CF", "#7FBBCF", "#7FB1CF", "#80A8CE", "#809ECE", "#8897CE", "#8F90CD", "#9788CD", "#9E81CC", "#AA81C5", "#B681BE", "#C280B7", "#CE80B0", "#D3779F", "#D76D8F", "#DC647E", "#E05A6D", "#E16167", "#E26962", "#E2705C", "#E37756", "#E38457", "#E39158", "#E29D58", "#E2AA59", "#E0B15B", "#DFB95C", "#DDC05E", "#DBC75F", "#E3CF6D", "#EAD67C", "#F2DE8A"]);  
 var color = d3.scale.category10();
 
+
+// GRIDLINES
+
+function make_x_gridlines() {        
+    return d3.svg.axis()
+        .scale(xScale)
+         .orient("bottom")
+         .ticks(10)
+         .tickSize(-graph_height, 0, 0)
+         .tickFormat("");
+}
+
+function make_y_gridlines() {        
+    return d3.svg.axis()
+        .scale(yScale)
+        .orient("left")
+        .ticks(10)
+        .tickSize(-graph_width, 0, 0)
+        .tickFormat("");
+}
+
+
+/// AXES 
 var xAxis = d3.svg.axis()
     .scale(xScale)
     .orient("bottom"),
 
-    xAxis2 = d3.svg.axis() // xAxis for brush slider
-    .scale(xScale2)
-    .orient("bottom");    
+    scrubberxAxis = d3.svg.axis() // xAxis for brush slider
+    .scale(scrubberxScale)
+    .orient("top")
+    .tickSize(0, 0, 0);
+
+    scrubberxGridlines = d3.svg.axis()
+    .scale(scrubberxScale)
+    .tickFormat("")
+    .ticks(10)
+    .tickSize(scrubber_height, 0, 0);
 
 var yAxis = d3.svg.axis()
     .scale(yScale)
@@ -58,11 +88,12 @@ var line = d3.svg.line()
     .y(function(d) { return yScale(d.rating); })
     .defined(function(d) { return d.rating; });  // Hiding line value defaults of 0 for missing data
 
+
 var maxY; // Defined later to update yAxis
 
 var svg = d3.select("body").append("svg")
     .attr("width", chart_width + chart_margin.left + chart_margin.right)
-    .attr("height", chart_container_height + chart_margin.top + chart_margin.bottom)
+    .attr("height", chart_container_height)
   .append("g")
     .attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
 
@@ -77,15 +108,8 @@ svg.append("rect")
     //.style("opacity",.5);
     
     
-// svg.append("rect")
-//   .attr("x", 0)
-//   .attr("y", 0)
-//   .attr("width", 10)
-//   .attr("height", 10)
-//   .attr("fill", "black");
-  
 
-// TIMESTRIP
+// SCRUBBER
 var context = svg.append("g") // Brushing context box container
     .attr("transform", "translate(" + chart_margin.left + "," + scrubber_container.y + ")") // todo scrubber.x scrubber.y
     .attr("class", "context");
@@ -127,65 +151,96 @@ d3.tsv("health_data.tsv", function(error, data) {
   yScale.domain([0, d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })
   ]);
 
-  xScale2.domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
+  scrubberxScale.domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
  
-//TIMESTRIP
+ 
+ // DRAW GRIDLINES
+
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","x-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top+graph_height) + ")")
+      .call(make_x_gridlines());
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","y-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
+      .call(make_y_gridlines());
+ 
+ 
+ 
+//SCRUBBER
 
  var brush = d3.svg.brush()//for slider bar at the bottom
-    .x(xScale2)
+    .x(scrubberxScale)
     .on("brushend", brushend)
     .on("brushstart", brushstart);
 
-
-  context.append("g") // Create brushing xAxis
-      .attr("class", "x axis1")
-      .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top + scrubber_height) + ")")
-      .call(xAxis2);
-
   var contextArea = d3.svg.area() // Set attributes for area chart in brushing context graph
     .interpolate("monotone")
-    .x(function(d) { return xScale2(d.date); }) // x is scaled to xScale2
-    .y0(scrubber_height) // Bottom line begins at height2 (area chart not inverted) 
-    .y1(0); // Top line of area, 0 (area chart not inverted)
+    .x(function(d) { return scrubberxScale(d.date); }) // x is scaled to scrubberxScale
+    .y0(scrubber_container.y + scrubber_margin.top + scrubber_height) // Bottom line begins at height2 (area chart not inverted) 
+    .y1(scrubber_container.y + scrubber_margin.top); // Top line of area, 0 (area chart not inverted)
 
   //plot the rect as the bar at the bottom
   context.append("path") // Path is created using svg.area details
     .attr("class", "area")
-    .attr("class", "brush")
-    .attr("id", "timestrip")
-    .attr("fill", "gray")
+    .attr("fill", "#DDD")
     .attr("d", contextArea(categories[0].values)) // pass first categories data .values to area path generator 
     //.attr("fill", "#F1F1F2");
-    
+
+
+  context.append("rect")
+    .attr("fill","darkgrey")
+    .attr("height", scrubber_height*2/3) // Make brush rects same height 
+    .attr("width", graph_width)
+    .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
+      //.attr("fill", "#E6E7E8"); 
+
+  context.append("g") // Create scrubber x Gridlines
+      .attr("class", "scrubber-grid")
+      .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top) + ")")
+      .call(scrubberxGridlines);
+
+  context.append("g") // Create scrubber xAxis
+      .attr("class", "x axis1")
+      //.attr("fill", "gray")
+      .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top ) + ")")
+      .call(scrubberxAxis);
+
+  context.append("rect")
+    .attr("class", "brush")
+    .attr("id","fake-brush")
+    .attr("fill","none")
+    .attr("height", scrubber_height*2/3) // Make brush rects same height 
+    .attr("width", graph_width)
+    .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
+      //.attr("fill", "#E6E7E8"); 
+
+
+
   //append the brush for the selection of subsection  
   context.append("g")
     .attr("class", "x brush")
     .call(brush)
     .selectAll("rect")
-    .attr("height", scrubber_height) // Make brush rects same height 
+    .attr("height", scrubber_height*2/3) // Make brush rects same height 
+    .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
       //.attr("fill", "#E6E7E8"); 
+
 
 
 // LINE GRAPH
   
   //svg.append("g").attr("transform", "translate(" + chart_margin.left + "," + graph_container.y + ")")
 
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate("+chart_margin.left+","+ eval(graph_container.y+graph_margin.top+graph_height) + ")")
-      .call(xAxis);
+
 
   svg.append("g")
       .attr("class", "y axis")
       .attr("transform", "translate("+eval(chart_margin.left+graph_width)+", "+eval(graph_container.y+graph_margin.top)+")")
       .call(yAxis)
-    // .append("text")
-    //   .attr("transform", "rotate(-90)")
-    //   .attr("y", 6)
-    //   .attr("x", -10)
-    //   .attr("dy", ".71em")
-    //   .style("text-anchor", "end")
-    //   .text("Y-Axis");
+
 
   var issue = svg.selectAll(".issue")
       .data(categories) // Select nested data and append to new svg group elements
@@ -205,7 +260,11 @@ d3.tsv("health_data.tsv", function(error, data) {
       .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
       .style("stroke", function(d) { return color(d.name); });
 
-
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_container.height-graph_margin.bottom)+")")
+      .call(xAxis);
+      
 // LEGEND
   var legendSpace = graph_height / categories.length; // 450 (just changed to height)/number of issues (ex. 40)    
 
@@ -316,6 +375,9 @@ d3.tsv("health_data.tsv", function(error, data) {
 
       d3.select("#hover-line")
           .style("opacity", 1e-6); // On mouse out making line invisible
+      
+      focus.select("text").text("");    
+          
   });
 
   function mousemove() { 
@@ -364,31 +426,38 @@ d3.tsv("health_data.tsv", function(error, data) {
 
 
   function brushstart() {
-    d3.selectAll("#timestrip").classed("brush",false);
+    d3.selectAll("#fake-brush").classed("brush",false);
   };      
   
   function brushend() {
 
-    xScale.domain(brush.empty() ? xScale2.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
+    xScale.domain(brush.empty() ? scrubberxScale.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
 
     if(brush.empty()){
-      //stylize the timestrip like it's the brush
-      d3.selectAll("#timestrip").classed("brush",true);
+      //stylize the fake brush like it's the brush
+      d3.selectAll("#fake-brush").classed("brush",true);
     } else {
-      d3.selectAll("#timestrip").classed("brush",false);
+      d3.selectAll("#fake-brush").classed("brush",false);
       
     }
 
     svg.select(".x.axis") // replot xAxis with transition when brush used
           .transition()
           .call(xAxis);
+    svg.select("#x-gridlines")     
+      .transition()
+      .call(make_x_gridlines());
 
     maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
     yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
     
     svg.select(".y.axis") // Redraw yAxis
       .transition()
-      .call(yAxis);   
+        .call(yAxis);   
+    svg.select("#y-gridlines")     
+      .transition()
+      .call(make_y_gridlines());
+  
 
     issue.select("path") // Redraw lines based on brush xAxis scale and domain
       .transition()

@@ -1,5 +1,10 @@
 body {
   font: 10px sans-serif;
+  background-color: white;
+}
+
+.graph {
+  stroke: #000;
 }
 
 .axis path,
@@ -53,15 +58,36 @@ body {
 /*  stroke: black;*/
 /*}*/
 
-.brush .extent {
-  stroke: green;
-  fill: lightgreen;
-  shape-rendering: crispEdges;
-}
+/*.brush .extent {*/
+/*  stroke: green;*/
+/*  fill: lightgreen;*/
+/*  shape-rendering: crispEdges;*/
+/*}*/
 
 .brush {
-  stroke: green;
+  stroke: black;
+  stroke-width: 2px;
   fill: lightgreen;
   shape-rendering: crispEdges;
+  opacity: 0.5;
 }
 
+
+.grid .tick {
+    stroke: lightgray;
+    opacity: 0.7;
+}
+
+.scrubber {
+  stroke: #000;
+  fill: #DDD;
+}
+
+.scrubber-grid .tick {
+    stroke: #333;
+    opacity: 0.7;
+}
+
+.grid path {
+      stroke-width: 0;
+}
