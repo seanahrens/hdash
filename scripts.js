@@ -12,26 +12,35 @@
     //height2 = 500 - margin2.top - margin2.bottom,
 
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
+      
       chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
-      chart_width = 500,
+      chart_width = 600,
+      
       scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
       scrubber_height = 30,
       scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
+      
       graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
       graph_height = 400,
-      graph_width = chart_width - chart_margin.left - graph_margin.left - graph_margin.right,
-      graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top - graph_margin.bottom },
-    chart_container_height = scrubber_container.height + graph_container.height;
+      graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
+      
+      timeline_margin = {top: 20, bottom: 20, right: 0, left: 0},
+      timeline_row_height = 20,
+      timeline_height = timeline_row_height * 6, // replace 6 with calculated number of timeline rows
+      timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
+        
+    
+    chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
 
 
-var parseDate = d3.time.format("%Y%m%d").parse;
+var parseDate = d3.time.format("%m/%d/%Y").parse;
 var bisectDate = d3.bisector(function(d) { return d.date; }).left;
 
 var xScale = d3.time.scale()
-    .range([0, graph_width]),
+    .range([0, chart_width]),
 
     scrubberxScale = d3.time.scale()
-    .range([0, graph_width]); // Duplicate xScale for brushing ref later
+    .range([0, chart_width]); // Duplicate xScale for brushing ref later
 
 var yScale = d3.scale.linear()
     .range([graph_height, 0]);
@@ -57,7 +66,7 @@ function make_y_gridlines() {
         .scale(yScale)
         .orient("left")
         .ticks(10)
-        .tickSize(-graph_width, 0, 0)
+        .tickSize(-chart_width, 0, 0)
         .tickFormat("");
 }
 
@@ -94,12 +103,12 @@ var maxY; // Defined later to update yAxis
 var svg = d3.select("body").append("svg")
     .attr("width", chart_width + chart_margin.left + chart_margin.right)
     .attr("height", chart_container_height)
-  .append("g")
-    .attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
+  //.append("g")
+    //.attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
 
 // Create invisible rect for mouse tracking
 svg.append("rect")
-    .attr("width", graph_width)
+    .attr("width", chart_width)
     .attr("height", graph_height)                                    
     .attr("x", chart_margin.left) 
     .attr("y", graph_container.y + graph_margin.top)
@@ -119,7 +128,7 @@ svg.append("defs") //todo probably assumes xy of 00 but we do need to place it w
   .append("clipPath") 
     .attr("id", "clip")
     .append("rect")
-    .attr("width", graph_width)
+    .attr("width", chart_width)
     .attr("height", graph_height); 
 
 
@@ -193,7 +202,7 @@ d3.tsv("health_data.tsv", function(error, data) {
   context.append("rect")
     .attr("fill","darkgrey")
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
-    .attr("width", graph_width)
+    .attr("width", chart_width)
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
       //.attr("fill", "#E6E7E8"); 
 
@@ -213,7 +222,7 @@ d3.tsv("health_data.tsv", function(error, data) {
     .attr("id","fake-brush")
     .attr("fill","none")
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
-    .attr("width", graph_width)
+    .attr("width", chart_width)
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
       //.attr("fill", "#E6E7E8"); 
 
@@ -238,7 +247,7 @@ d3.tsv("health_data.tsv", function(error, data) {
 
   svg.append("g")
       .attr("class", "y axis")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_width)+", "+eval(graph_container.y+graph_margin.top)+")")
+      .attr("transform", "translate("+eval(chart_margin.left+chart_width)+", "+eval(graph_container.y+graph_margin.top)+")")
       .call(yAxis)
 
 
@@ -262,8 +271,27 @@ d3.tsv("health_data.tsv", function(error, data) {
 
   svg.append("g")
       .attr("class", "x axis")
-      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_container.height-graph_margin.bottom)+")")
+      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_margin.top + graph_height)+")")
       .call(xAxis);
+
+
+
+  //TIMELINE
+
+  svg.append("g")
+      .attr("transform", "translate("+chart_margin.left+","+eval(timeline_container.y + timeline_margin.top)+")")
+      .append("rect")
+        .attr("width", 10)
+        .attr("height", 10)    
+        .attr("fill", "black")
+        .attr("transform", "translate("+chart_margin.left+","+eval(timeline_container.y + timeline_margin.top)+")");
+
+
+
+
+
+
+
       
 // LEGEND
   var legendSpace = graph_height / categories.length; // 450 (just changed to height)/number of issues (ex. 40)    
@@ -388,7 +416,7 @@ d3.tsv("health_data.tsv", function(error, data) {
       //var graph_y = yScale.invert(mouse_y);
       //console.log(graph_x);
       
-      var format = d3.time.format('%b %Y'); // Format hover date text to show three letter month and full year
+      var format = d3.time.format('%b %d %Y'); // Format hover date text to show three letter month and full year
       
       hoverDate.text(format(graph_x)) // scale mouse position to xScale date and format it to show month and year
         .attr("x", mouse_x)
