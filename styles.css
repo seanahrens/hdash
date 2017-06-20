@@ -1,69 +1,21 @@
+
 body {
   font: 10px sans-serif;
   background-color: white;
 }
 
-.graph {
+
+
+/* SCRUBBER */
+
+.scrubber {
   stroke: #000;
+  fill: #DDD;
 }
-
-.axis path,
-.axis line, 
-.axis1 path,
-.axis1 line {
-  fill: none;
-  stroke: #E6E7E8;
-  shape-rendering: crispEdges;
+.scrubber-grid .tick {
+    stroke: #333;
+    opacity: 0.7;
 }
-
-.x.axis path, .x.axis1 path {
-  display: none;
-}
-
-.line {
-  fill: none;
-  stroke-width: 1.5px;
-}
-
-.legend-box {
-  cursor: pointer;  
-}
-
-#mouse-tracker {
-  stroke: #E6E7E8;
-  stroke-width: 1px;
-}
-
-.hover-line { 
-  stroke: #000;
-  fill: none;
-  stroke-width: 1.5px;
-  left: 10px;
-  shape-rendering: crispEdges;
-  /*opacity: 1e-6;*/
-}
-
-.hover-text {
-  /*font-size: 14px; */
-  font-weight: normal;
-  fill: #000;
-  stroke-width: 0px;
-}
-
-.tooltip {
-  font-weight: normal;
-}
-
-/*.timeStrip {*/
-/*  stroke: black;*/
-/*}*/
-
-/*.brush .extent {*/
-/*  stroke: green;*/
-/*  fill: lightgreen;*/
-/*  shape-rendering: crispEdges;*/
-/*}*/
-
 .brush {
   stroke: black;
   stroke-width: 2px;
@@ -73,21 +25,78 @@ body {
 }
 
 
+
+/* GRAPH & CONTENTS */
+
+.graph {
+  stroke: #000;
+}
+.line {
+  fill: none;
+  stroke-width: 1.5px;
+}
+.legend-box {
+  cursor: pointer;  
+}
+
+
+
+/* AXES */
+
+.axis path, .axis line, .axis1 path, .axis1 line {
+  fill: none;
+  stroke: #E6E7E8;
+  shape-rendering: crispEdges;
+}
+.x.axis path, .x.axis1 path {
+  display: none;
+}
+
+
+
+/* GRIDLINES */
+
 .grid .tick {
     stroke: lightgray;
     opacity: 0.7;
 }
-
-.scrubber {
-  stroke: #000;
-  fill: #DDD;
-}
-
-.scrubber-grid .tick {
-    stroke: #333;
-    opacity: 0.7;
-}
-
 .grid path {
       stroke-width: 0;
+}
+
+
+/* LEGEND */
+.checkmark {
+  font-size: 25px; 
+  font-weight: bold;
+  text-anchor: top;
+}
+.measure .label {
+  font-size: 12px;
+}
+
+
+
+/* HOVER EFFECTS */
+
+.hover-line { 
+  stroke: #000;
+  fill: none;
+  stroke-width: 1.5px;
+  left: 10px;
+  shape-rendering: crispEdges;
+  /*opacity: 1e-6;*/
+}
+.hover-text {
+  /*font-size: 14px; */
+  font-weight: normal;
+  fill: #000;
+  stroke-width: 0px;
+}
+.tooltip {
+  font-weight: normal;
+}
+#mouse-tracker {
+  stroke: #E6E7E8;
+  stroke-width: 1px;
 }
