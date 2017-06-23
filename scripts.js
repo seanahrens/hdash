@@ -1,91 +1,8 @@
 // TODO
 // Optimize Code: 
 // Make findMaxY not iterate thru all values to determine max
-// Do not require full path renderings of all the lines and then clip them in order to show the graph
 
 /* global d3 */
-
-// MARGINS, HEIGHTS, WIDTHS, ETC
-var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
-    
-    chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
-    chart_width = 850,
-    
-    scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
-    scrubber_height = 50,
-    scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
-    
-    graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
-    graph_height = 400,
-    graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
-    
-    timeline_margin = {top: 30, bottom: 20, right: 0, left: 0},
-    timeline_row_height = 30,
-    timeline_row_padding = 5;
-
-
-var color = d3.scale.category20();
-var timelineColor = d3.scale.category20c();
-var parseDate = d3.time.format("%m/%d/%Y").parse;
-var bisectDate = d3.bisector(function(d) { return d.date; }).left;
-var maxY; // Defined later to update yAxis
-
-
-// SCALES (Y, X, and ScrubberX)
-var yScale = d3.scale.linear()
-    .range([graph_height, 0]),
-    
-    xScale = d3.time.scale()
-    .range([0, chart_width]),
-
-    scrubberxScale = d3.time.scale()
-    .range([0, chart_width]); 
-
-
-/// AXES 
-var scrubberxAxis = d3.svg.axis() // xAxis for brush slider
-    .scale(scrubberxScale)
-    .orient("top")
-    .tickSize(0, 0, 0),
-
-    xAxis = d3.svg.axis()
-    .scale(xScale)
-    .orient("bottom"),
-
-    yAxis = d3.svg.axis()
-    .scale(yScale)
-    .orient("left");  
-
-// GRIDLINES
-var scrubberxGridlines = d3.svg.axis()
-    .scale(scrubberxScale)
-    .tickFormat("")
-    .ticks(10)
-    .tickSize(scrubber_height, 0, 0),
-    
-  yGridlines = d3.svg.axis()
-    .scale(yScale)
-    .orient("left")
-    .ticks(10)
-    .tickSize(-chart_width, 0, 0)
-    .tickFormat(""),
-
-  xGridlines = d3.svg.axis()
-  .scale(xScale)
-  .orient("bottom")
-  .ticks(10)
-  .tickSize(-graph_height, 0, 0)
-  .tickFormat("");
-  
-
-// LINE & PLOTTED DATA
-var line = d3.svg.line()
-    .interpolate("basis")
-    .x(function(d) { return xScale(d.date); })
-    .y(function(d) { return yScale(d.rating); })
-    .defined(function(d) { return d.rating; });  // Hiding line value defaults of 0 for missing data
-
-
 
 
 
@@ -115,23 +32,117 @@ function handleError(error){
 
 
 
+
+
+//////////////
 /// CHART THE DATA
+//////////////
 
 function chartData(data,event_data){  
 
-  var timeline_height = timeline_row_height * event_data.length, // replace with calculated number of timeline rows
-      timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
+
+  // MARGINS, HEIGHTS, WIDTHS, ETC
+  var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       
+      chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
+      chart_width = 600,
+      
+      scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
+      scrubber_height = 50,
+      scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
+      
+      graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
+      graph_height = 400,
+      graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
+      
+      timeline_margin = {top: 20, bottom: 20, right: 0, left: 0},
+      timeline_row_height = 30,
+      timeline_row_padding = 5,
+      timeline_height = timeline_row_height * event_data.length + timeline_row_padding,
+      timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
+        
       chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
+  
+  
+
+  var parseDate = d3.time.format("%m/%d/%Y").parse;
+  var bisectDate = d3.bisector(function(d) { return d.date; }).left;
+ // var maxY; // Defined later to update yAxis
+  
+  
+  // SCALES (Y, X, and ScrubberX)
+  var yScale = d3.scale.linear()
+      .range([graph_height, 0]),
+      
+      xScale = d3.time.scale()
+      .range([0, chart_width]),
+  
+      scrubberxScale = d3.time.scale()
+      .range([0, chart_width]); 
+  
+  
+  /// AXES 
+  var scrubberxAxis = d3.svg.axis() // xAxis for brush slider
+      .scale(scrubberxScale)
+      .orient("top")
+      .tickSize(0, 0, 0),
+  
+      xAxis = d3.svg.axis()
+      .scale(xScale)
+      .orient("bottom"),
+  
+      yAxis = d3.svg.axis()
+      .scale(yScale)
+      .orient("left");  
+  
+  // GRIDLINES
+  var scrubberxGridlines = d3.svg.axis()
+      .scale(scrubberxScale)
+      .tickFormat("")
+      .ticks(10)
+      .tickSize(scrubber_height, 0, 0),
+      
+    yGridlines = d3.svg.axis()
+      .scale(yScale)
+      .orient("left")
+      .ticks(10)
+      .tickSize(-chart_width, 0, 0)
+      .tickFormat(""),
+  
+    xGridlines = d3.svg.axis()
+    .scale(xScale)
+    .orient("bottom")
+    .ticks(10)
+    .tickSize(-graph_height, 0, 0)
+    .tickFormat("");
+    
+  
+  // LINE & PLOTTED DATA
+  var line = d3.svg.line()
+      .interpolate("basis")
+      .x(function(d) { return xScale(d.date); })
+      .y(function(d) { return yScale(d.rating); })
+      .defined(function(d) { return d.rating; });  // Hiding line value defaults of 0 for missing data
+
 
 
 
   // SET UP COLOR DOMAINS
+  var color = d3.scale.category20();
+  var timelineColor = d3.scale.category20c();
+  
   color.domain(d3.keys(data[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
     return key !== "date"; 
   }));
   
   timelineColor.domain(event_data.map(function(event_type){ return event_type.name}));
+
+
+
+
+
+
+
 
 
 
@@ -142,7 +153,7 @@ function chartData(data,event_data){
   //////
 
   var svg = d3.select("body").append("svg")
-    .attr("width", chart_width+20)
+    .attr("width", chart_width +400)
     .attr("height", chart_container_height+5);
   //.append("g")
     //.attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
@@ -164,13 +175,10 @@ function chartData(data,event_data){
       .attr("id", "clip")
       .append("rect")
       .attr("width", chart_width)
-      .attr("height", graph_height); 
+      .attr("height", chart_container_height); 
 
   
-  // SCRUBBER
-  var scrubber = svg.append("g") // Brushing scrubber box container
-    .attr("transform", "translate(" + chart_margin.left + "," + scrubber_container.y + ")") // todo scrubber.x scrubber.y
-    .attr("class", "scrubber");
+
 
 
     
@@ -200,26 +208,81 @@ function chartData(data,event_data){
 
   // SET DOMAINS OF THE SCALES
   xScale.domain(d3.extent(data, function(d) { return d.date; })); // extent = highest and lowest points, domain is data, range is bouding box
-  yScale.domain([0, d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
   scrubberxScale.domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
- 
+  scaleY();
 
-  // DRAW GRIDLINES
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","x-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top+graph_height) + ")")
-      .call(xGridlines);
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","y-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
-      .call(yGridlines);
+
+
+
+
+
+
+
+  //////////
+  //TIMELINE
+  //////////
+  
+  
+  //d3.tsv("health_events.tsv", function(error, event_data) { 
+
+    svg.append("rect")
+      .attr("x",0)
+      .attr("y",timeline_container.y+timeline_margin.top)
+      .attr("height", timeline_row_height * event_data.length + timeline_row_padding)
+      .attr("width", chart_width + chart_margin.left)
+      .attr("fill", "#DDD")
+      .style("pointer-events", "none"); // Stop line interferring with cursor
+
+    var event_categories = [];
+  
+    var event = svg.selectAll(".event")
+        .data(event_data) // Select nested data and append to new svg group elements
+      .enter().append("g")
+        .attr("class", "event")
+        .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
+
+    event.append("rect")
+      .attr("x", 5)
+      .attr("y", timeline_row_padding)
+      .attr("height", timeline_row_height - timeline_row_padding)
+      .attr("width", chart_width + chart_margin.left -5)
+      .attr("fill", "#FFF")
+      .style("pointer-events", "none") // Stop line interferring with cursor
+
+
+    // ADD LABEL
+    event.append("text")
+      .attr("x", 25)
+      .attr("class","label")
+      .text(function(d) { return d.name})
+      .attr("dy", timeline_row_height - timeline_row_padding - 3);
+
+    // ADD TIMELINE LINES
+    event.append("path")
+      .attr("class", "timeline-line")
+      .style("pointer-events", "none") // Stop line interferring with cursor
+      .attr("id", function(d) {
+        return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
+      })
+      .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
+      .style("stroke", function(d) { return timelineColor(d.name); })
+      .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
+      .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
+      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
+
+
+
+
+
  
- 
- 
+  ///////
   //SCRUBBER
+  ///////
 
+  var scrubber = svg.append("g") // Brushing scrubber box container
+    .attr("transform", "translate(" + chart_margin.left + "," + scrubber_container.y + ")") // todo scrubber.x scrubber.y
+    .attr("class", "scrubber");
+    
   var brush = d3.svg.brush()
     .x(scrubberxScale)
     .on("brushend", brushend)
@@ -307,8 +370,10 @@ function chartData(data,event_data){
       .call(xGridlines);
 
     // REDRAW/RESCALE Y-AXIS
-    maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
-    yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+    //maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
+    //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+    scaleY();
+    
     svg.select(".y.axis") // Redraw yAxis
       .transition()
         .call(yAxis);   
@@ -341,8 +406,23 @@ function chartData(data,event_data){
   
   svg.append("g")
       .attr("class", "y axis")
-      .attr("transform", "translate("+eval(chart_width)+", "+eval(graph_container.y+graph_margin.top)+")")
+      .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
       .call(yAxis)
+
+  // DRAW GRIDLINES
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","x-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top+graph_height) + ")")
+      .call(xGridlines);
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","y-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
+      .call(yGridlines);
+ 
+
+
 
   // GRAPH LINES
 
@@ -388,8 +468,10 @@ function chartData(data,event_data){
     .on("click", function(d){ // On click toggle d.visible 
       d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
 
-      maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
-      yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+      // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
+      //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+      scaleY();
+      
       svg.select(".y.axis")
         .transition()
         .call(yAxis);   
@@ -429,6 +511,23 @@ function chartData(data,event_data){
 
 
 
+  // FRAMING OF SCALABLE ELEMENTS
+
+  svg.append("rect")
+    .attr("width", chart_width)
+    .attr("height", graph_height+graph_margin.bottom+timeline_margin.top+timeline_height)                                    
+    .attr("x", chart_margin.left) 
+    .attr("y", graph_container.y+graph_margin.top)
+    .attr("fill", "none")
+    .attr("stroke", "#000" )
+    .style("stroke-width", 1.5) 
+
+
+
+
+
+
+
 
   // HOVER LINE
   var hoverLineGroup = svg.append("g") 
@@ -440,7 +539,7 @@ function chartData(data,event_data){
             .attr("x1", chart_margin.left + graph_margin.left)
             .attr("x2", chart_margin.left + graph_margin.left) 
             .attr("y1", graph_container.y + graph_margin.top)
-            .attr("y2", chart_container_height) //graph_container.y + graph_margin.top + graph_height)
+            .attr("y2", timeline_container.y+timeline_margin.top+timeline_height)
             .style("pointer-events", "none") // Stop line interferring with cursor
             .style("opacity", 1e-6); // Set opacity to zero 
 
@@ -523,73 +622,7 @@ function chartData(data,event_data){
       // });
   }
   
-  
-  
 
-  //////////
-  //TIMELINE
-  //////////
-  
-  
-  //d3.tsv("health_events.tsv", function(error, event_data) { 
-
-    svg.append("rect")
-      .attr("x",chart_margin.left)
-      .attr("y",timeline_container.y+timeline_margin.top)
-      .attr("height", timeline_row_height * event_data.length)
-      .attr("width", chart_width)
-      .attr("fill", "#CCC")
-
-    var event_categories = [];
-  
-    var event = svg.selectAll(".event")
-        .data(event_data) // Select nested data and append to new svg group elements
-      .enter().append("g")
-        .attr("class", "event")
-        .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
-
-    event.append("rect")
-      .attr("y", timeline_row_padding)
-      .attr("height", timeline_row_height - timeline_row_padding)
-      .attr("width", chart_width+chart_margin.left)
-      .attr("fill", "#EEE");
-
-
-    // ADD LABEL
-    event.append("text")
-      .attr("x", 25)
-      .attr("class","label")
-      .text(function(d) { return d.name})
-      .attr("dy", timeline_row_height - timeline_row_padding - 3);
-
-    // ADD TIMELINE LINES
-    event.append("path")
-      .attr("class", "timeline-line")
-      .style("pointer-events", "none") // Stop line interferring with cursor
-      .attr("id", function(d) {
-        return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
-      })
-      .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
-      .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
-      .style("stroke", function(d) { return timelineColor(d.name); })
-      .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
-      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
-
-      
-      // .attr("d", function(d) { 
-      //   return timeline_line(d.dates); // If array key "visible" = true then draw line, if not then don't 
-      // });
-      //.attr("transform", "translate("+chart_margin.left+","+function(d,i) { return eval(i*timeline_row_height)}+")" )
-
-
-
-
-}
-  //}); // END HEALTH_EVENTS.TSV
-  
-
-
-//}); // END HEALTH_DATA.TSV
   
 
   
@@ -598,47 +631,61 @@ function chartData(data,event_data){
 // HELPER FUNCTIONS
 /////////////////
 
-function findMaxY(data){  // Define function "findMaxY"
-  var maxYValues = data.map(function(d) { 
-    if (d.visible){
-      return d3.max(d.values, function(value) { // Return max rating value
-        return value.rating; });
-    }
-  });
-  return d3.max(maxYValues);
-}
+  // function findMaxY(data){  // Define function "findMaxY"
+  //   var maxYValues = data.map(function(d) { 
+  //     if (d.visible){
+  //       return d3.max(d.values, function(value) { // Return max rating value
+  //         return value.rating; });
+  //     }
+  //   });
+  //   return d3.max(maxYValues);
+  // }
+  
+  function scaleY(){
+    yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
+  }
+  
+  function generateTimelinePath(dates){
+    dates = JSON.parse(dates);
+    var path = "";
+    var startDate;
+  
+    dates.forEach(function(datespan) {
+        startDate = parseDate(datespan[0]);
+      
+        path += "M "+xScale(startDate)+" 0 ";
+        if (datespan[1]===null) // means the event is spanning into the future    
+          path += "H "+xScale(xScale.domain()[xScale.domain().length-1])+" ";
+        else if (datespan[1]===undefined) // means this is not a event that spans, its a one time thing
+          path += "H "+xScale(startDate.setDate(startDate.getDate() + 1))+" ";
+        else // just use the spans data as defined
+          path += "H "+xScale(parseDate(datespan[1]))+" ";
+    });
+  
+    return path;
+  }
+  
+  
+  
+  function shuffle(array) {
+      var shuffled_array = new Array;
+      let counter = array.length;
+  
+      // While there are elements in the array
+      while (counter > 0) {
+          // Pick a random index
+          let index = Math.floor(Math.random() * counter);
+  
+          // Decrease counter by 1
+          counter--;
+  
+          // And swap the last element with it
+          let temp = array[counter];
+          shuffled_array[counter] = array[index];
+          shuffled_array[index] = temp;
+      }
+  
+      return shuffled_array;
+  }
 
-function generateTimelinePath(dates){
-  dates = JSON.parse(dates);
-  var path = "";
-
-  dates.forEach(function(datespan) {
-      path += "M "+xScale(parseDate(datespan[0]))+" 0 ";
-      path += "H "+xScale(parseDate(datespan[1]))+" ";
-  });
-
-  return path;
-}
-
-
-
-function shuffle(array) {
-    var shuffled_array = new Array;
-    let counter = array.length;
-
-    // While there are elements in the array
-    while (counter > 0) {
-        // Pick a random index
-        let index = Math.floor(Math.random() * counter);
-
-        // Decrease counter by 1
-        counter--;
-
-        // And swap the last element with it
-        let temp = array[counter];
-        shuffled_array[counter] = array[index];
-        shuffled_array[index] = temp;
-    }
-
-    return shuffled_array;
 }
