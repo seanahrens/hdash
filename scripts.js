@@ -9,24 +9,23 @@
 var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
     
     chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
-    chart_width = 600,
+    chart_width = 850,
     
     scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
-    scrubber_height = 30,
+    scrubber_height = 50,
     scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
     
     graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
     graph_height = 400,
     graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
     
-    timeline_margin = {top: 20, bottom: 20, right: 0, left: 0},
-    timeline_row_height = 20,
-    timeline_height = timeline_row_height * 6, // replace 6 with calculated number of timeline rows
-    timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
-      
-    chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
+    timeline_margin = {top: 30, bottom: 20, right: 0, left: 0},
+    timeline_row_height = 30,
+    timeline_row_padding = 5;
 
-var color = d3.scale.category10();
+
+var color = d3.scale.category20();
+var timelineColor = d3.scale.category20c();
 var parseDate = d3.time.format("%m/%d/%Y").parse;
 var bisectDate = d3.bisector(function(d) { return d.date; }).left;
 var maxY; // Defined later to update yAxis
@@ -88,49 +87,96 @@ var line = d3.svg.line()
 
 
 
-/////// 
-// DRAW IT ALL!
-//////
-
-var svg = d3.select("body").append("svg")
-    .attr("width", chart_width + chart_margin.left + chart_margin.right)
-    .attr("height", chart_container_height);
-  //.append("g")
-    //.attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
-
-// MOUSE TRACKER (invisible rect)
-svg.append("rect")
-  .attr("width", chart_width)
-  .attr("height", graph_height)                                    
-  .attr("x", chart_margin.left) 
-  .attr("y", graph_container.y + graph_margin.top)
-  .attr("id", "mouse-tracker")
-  .style("fill", "white");
-  //.style("opacity",.5);
-    
-// CLIP PATH RECT AROUND GRAPH (to hide parts of lines that are out of current view)
-svg.append("defs") //todo probably assumes xy of 00 but we do need to place it with the graph
-  .append("clipPath") 
-    .attr("id", "clip")
-    .append("rect")
-    .attr("width", chart_width)
-    .attr("height", graph_height); 
-
-
-// SCRUBBER
-var scrubber = svg.append("g") // Brushing scrubber box container
-    .attr("transform", "translate(" + chart_margin.left + "," + scrubber_container.y + ")") // todo scrubber.x scrubber.y
-    .attr("class", "scrubber");
 
 
 
-// HEALTH_DATA.TSV
+////////////////
+// LOAD TSVS AND HANDLE DATA
+///////////////
 
 d3.tsv("health_data.tsv", function(error, data) { 
+    if (error)
+      handleError(error);
+    else
+      d3.tsv("health_events.tsv", function(error, event_data) { 
+        if (error)
+          handleError(error);
+        else
+          chartData(data, event_data);
+      });
+});
+
+function handleError(error){
+  console.error('There was an error in loading one of the data files: ' + error);
+}
+
+
+
+
+
+
+/// CHART THE DATA
+
+function chartData(data,event_data){  
+
+  var timeline_height = timeline_row_height * event_data.length, // replace with calculated number of timeline rows
+      timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
+      
+      chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
+
+
+
   // SET UP COLOR DOMAINS
   color.domain(d3.keys(data[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
     return key !== "date"; 
   }));
+  
+  timelineColor.domain(event_data.map(function(event_type){ return event_type.name}));
+
+
+
+
+  
+  /////// 
+  // SVG DRAWING TIME!
+  //////
+
+  var svg = d3.select("body").append("svg")
+    .attr("width", chart_width+20)
+    .attr("height", chart_container_height+5);
+  //.append("g")
+    //.attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
+  
+  // MOUSE TRACKER (invisible rect)
+  svg.append("rect")
+    .attr("width", chart_width)
+    .attr("height", graph_height + graph_margin.bottom + timeline_margin.top + timeline_height)                                    
+    .attr("x", chart_margin.left) 
+    .attr("y", graph_container.y + graph_margin.top)
+    .attr("id", "mouse-tracker")
+    //.attr("stroke", "white")
+    .style("fill", "white");
+    //.style("opacity",.5);
+      
+  // CLIP PATH RECT AROUND GRAPH (to hide parts of lines that are out of current view)
+  svg.append("defs") //todo probably assumes xy of 00 but we do need to place it with the graph
+    .append("clipPath") 
+      .attr("id", "clip")
+      .append("rect")
+      .attr("width", chart_width)
+      .attr("height", graph_height); 
+
+  
+  // SCRUBBER
+  var scrubber = svg.append("g") // Brushing scrubber box container
+    .attr("transform", "translate(" + chart_margin.left + "," + scrubber_container.y + ")") // todo scrubber.x scrubber.y
+    .attr("class", "scrubber");
+
+
+    
+    
+    
+    
 
   // FORMAT DATES USING PARSER
   data.forEach(function(d) { d.date = parseDate(d.date); });
@@ -149,6 +195,8 @@ d3.tsv("health_data.tsv", function(error, data) {
       visible: (name === "Steps" || name === "Calories" || name === "Depression" || name === "Sleep Hours" || name === "Sleep Disturbance" || name === "Disease Activity"  ? false : true) // "visible": all false except for economy which is true.
     };
   });
+  
+  
 
   // SET DOMAINS OF THE SCALES
   xScale.domain(d3.extent(data, function(d) { return d.date; })); // extent = highest and lowest points, domain is data, range is bouding box
@@ -231,6 +279,17 @@ d3.tsv("health_data.tsv", function(error, data) {
     d3.selectAll("#fake-brush").classed("brush",false);
   }   
   
+  
+  
+  
+  
+  
+  
+  /////////
+  /// UPDATE LINES WHEN TIMELINE ADJUSTED
+  ////////
+  
+  
   function brushend() {
     // TOGGLE FAKE BRUSH EFFECT IF NO AREA SELECTED
     if(brush.empty())
@@ -238,9 +297,8 @@ d3.tsv("health_data.tsv", function(error, data) {
     else
       d3.selectAll("#fake-brush").classed("brush",false);
    
-    // RESCALE X-AXIS BASED ON SELECTION AND REDRAW
+    // REDRAW/RESCALE X-AXIS
     xScale.domain(brush.empty() ? scrubberxScale.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
-    
     svg.select(".x.axis")
       .transition()
       .call(xAxis);
@@ -248,10 +306,9 @@ d3.tsv("health_data.tsv", function(error, data) {
       .transition()
       .call(xGridlines);
 
-    // RESCALE Y-AXIS BASED ON DATA IN SELECTION AND REDRAW
+    // REDRAW/RESCALE Y-AXIS
     maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
     yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
-    
     svg.select(".y.axis") // Redraw yAxis
       .transition()
         .call(yAxis);   
@@ -259,12 +316,18 @@ d3.tsv("health_data.tsv", function(error, data) {
       .transition()
       .call(yGridlines);
   
-    // REDRAW THE LINES
+    // REDRAW/RESCALE THE LINES
     measure.select("path") // Redraw lines based on brush xAxis scale and domain
       .transition()
       .attr("d", function(d){
           return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
       });
+      
+    //REDRAW/RESCALE THE TIMELINE LINES
+    event.select("path") // Redraw lines based on brush xAxis scale and domain
+      .transition()
+      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
+
   }    
 
 
@@ -278,7 +341,7 @@ d3.tsv("health_data.tsv", function(error, data) {
   
   svg.append("g")
       .attr("class", "y axis")
-      .attr("transform", "translate("+eval(chart_margin.left+chart_width)+", "+eval(graph_container.y+graph_margin.top)+")")
+      .attr("transform", "translate("+eval(chart_width)+", "+eval(graph_container.y+graph_margin.top)+")")
       .call(yAxis)
 
   // GRAPH LINES
@@ -362,6 +425,9 @@ d3.tsv("health_data.tsv", function(error, data) {
     .text("x")
     .attr("display", function(d) { return d.visible ? "block" : "none"; })
     .style("pointer-events", "none");
+
+
+
 
 
   // HOVER LINE
@@ -457,25 +523,80 @@ d3.tsv("health_data.tsv", function(error, data) {
       // });
   }
   
+  
+  
 
-
+  //////////
   //TIMELINE
+  //////////
+  
+  
+  //d3.tsv("health_events.tsv", function(error, event_data) { 
 
-  svg.append("g")
-      .attr("transform", "translate(0,"+eval(timeline_container.y + timeline_margin.top)+")")
-      .append("rect")
-        .attr("width", 10)
-        .attr("height", 10)    
-        .attr("fill", "black")
-        //.attr("transform", "translate("+chart_margin.left+","+eval(timeline_container.y + timeline_margin.top)+")");
-    
+    svg.append("rect")
+      .attr("x",chart_margin.left)
+      .attr("y",timeline_container.y+timeline_margin.top)
+      .attr("height", timeline_row_height * event_data.length)
+      .attr("width", chart_width)
+      .attr("fill", "#CCC")
 
-}); // End Data.tsv processing callback
+    var event_categories = [];
+  
+    var event = svg.selectAll(".event")
+        .data(event_data) // Select nested data and append to new svg group elements
+      .enter().append("g")
+        .attr("class", "event")
+        .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
+
+    event.append("rect")
+      .attr("y", timeline_row_padding)
+      .attr("height", timeline_row_height - timeline_row_padding)
+      .attr("width", chart_width+chart_margin.left)
+      .attr("fill", "#EEE");
+
+
+    // ADD LABEL
+    event.append("text")
+      .attr("x", 25)
+      .attr("class","label")
+      .text(function(d) { return d.name})
+      .attr("dy", timeline_row_height - timeline_row_padding - 3);
+
+    // ADD TIMELINE LINES
+    event.append("path")
+      .attr("class", "timeline-line")
+      .style("pointer-events", "none") // Stop line interferring with cursor
+      .attr("id", function(d) {
+        return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
+      })
+      .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
+      .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
+      .style("stroke", function(d) { return timelineColor(d.name); })
+      .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
+      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
+
+      
+      // .attr("d", function(d) { 
+      //   return timeline_line(d.dates); // If array key "visible" = true then draw line, if not then don't 
+      // });
+      //.attr("transform", "translate("+chart_margin.left+","+function(d,i) { return eval(i*timeline_row_height)}+")" )
+
+
+
+
+}
+  //}); // END HEALTH_EVENTS.TSV
+  
+
+
+//}); // END HEALTH_DATA.TSV
   
 
   
+  
+/////////////////  
 // HELPER FUNCTIONS
-
+/////////////////
 
 function findMaxY(data){  // Define function "findMaxY"
   var maxYValues = data.map(function(d) { 
@@ -485,4 +606,39 @@ function findMaxY(data){  // Define function "findMaxY"
     }
   });
   return d3.max(maxYValues);
+}
+
+function generateTimelinePath(dates){
+  dates = JSON.parse(dates);
+  var path = "";
+
+  dates.forEach(function(datespan) {
+      path += "M "+xScale(parseDate(datespan[0]))+" 0 ";
+      path += "H "+xScale(parseDate(datespan[1]))+" ";
+  });
+
+  return path;
+}
+
+
+
+function shuffle(array) {
+    var shuffled_array = new Array;
+    let counter = array.length;
+
+    // While there are elements in the array
+    while (counter > 0) {
+        // Pick a random index
+        let index = Math.floor(Math.random() * counter);
+
+        // Decrease counter by 1
+        counter--;
+
+        // And swap the last element with it
+        let temp = array[counter];
+        shuffled_array[counter] = array[index];
+        shuffled_array[index] = temp;
+    }
+
+    return shuffled_array;
 }
