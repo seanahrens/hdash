@@ -45,7 +45,7 @@ function chartData(data,event_data){
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       
       chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
-      chart_width = 600,
+      chart_width = 700,
       
       scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
       scrubber_height = 50,
@@ -89,7 +89,8 @@ function chartData(data,event_data){
   
       xAxis = d3.svg.axis()
       .scale(xScale)
-      .orient("bottom"),
+      .orient("bottom")
+
   
       yAxis = d3.svg.axis()
       .scale(yScale)
@@ -113,7 +114,7 @@ function chartData(data,event_data){
     .scale(xScale)
     .orient("bottom")
     .ticks(10)
-    .tickSize(-graph_height, 0, 0)
+    .tickSize(-graph_height-timeline_height, 0, 0)
     .tickFormat("");
     
   
@@ -153,7 +154,8 @@ function chartData(data,event_data){
   //////
 
   var svg = d3.select("body").append("svg")
-    .attr("width", chart_width +400)
+    .attr("id", "svg")
+    .attr("width", chart_width + chart_margin.left + chart_margin.right)
     .attr("height", chart_container_height+5);
   //.append("g")
     //.attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
@@ -214,6 +216,32 @@ function chartData(data,event_data){
 
 
 
+  // GRAPH AXES
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_margin.top + graph_height)+")")
+      .call(xAxis)
+      .style("pointer-events", "none"); // Stop line interferring with cursor
+
+  
+  svg.append("g")
+      .attr("class", "y axis")
+      .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
+      .call(yAxis)
+
+  // DRAW GRIDLINES
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","x-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(timeline_container.y+timeline_margin.top+timeline_height ) + ")")
+      .call(xGridlines);
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","y-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
+      .call(yGridlines);
+ 
 
 
 
@@ -222,16 +250,15 @@ function chartData(data,event_data){
   //TIMELINE
   //////////
   
-  
-  //d3.tsv("health_events.tsv", function(error, event_data) { 
+    // svg.append("rect")
+    //   .attr("x",0)
+    //   .attr("y",timeline_container.y+timeline_margin.top)
+    //   .attr("height", timeline_row_height * event_data.length + timeline_row_padding)
+    //   .attr("width", chart_width + chart_margin.left)
+    //   .attr("fill", "#DDD")
 
-    svg.append("rect")
-      .attr("x",0)
-      .attr("y",timeline_container.y+timeline_margin.top)
-      .attr("height", timeline_row_height * event_data.length + timeline_row_padding)
-      .attr("width", chart_width + chart_margin.left)
-      .attr("fill", "#DDD")
-      .style("pointer-events", "none"); // Stop line interferring with cursor
+           
+    //   .style("pointer-events", "none"); // Stop line interferring with cursor
 
     var event_categories = [];
   
@@ -246,9 +273,9 @@ function chartData(data,event_data){
       .attr("y", timeline_row_padding)
       .attr("height", timeline_row_height - timeline_row_padding)
       .attr("width", chart_width + chart_margin.left -5)
-      .attr("fill", "#FFF")
+      .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
       .style("pointer-events", "none") // Stop line interferring with cursor
-
+      .style("opacity", .2) 
 
     // ADD LABEL
     event.append("text")
@@ -256,6 +283,17 @@ function chartData(data,event_data){
       .attr("class","label")
       .text(function(d) { return d.name})
       .attr("dy", timeline_row_height - timeline_row_padding - 3);
+
+
+
+
+
+
+
+
+
+
+
 
     // ADD TIMELINE LINES
     event.append("path")
@@ -397,30 +435,6 @@ function chartData(data,event_data){
 
 
 
-  // GRAPH AXES
-
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_margin.top + graph_height)+")")
-      .call(xAxis);
-  
-  svg.append("g")
-      .attr("class", "y axis")
-      .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
-      .call(yAxis)
-
-  // DRAW GRIDLINES
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","x-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top+graph_height) + ")")
-      .call(xGridlines);
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","y-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
-      .call(yGridlines);
- 
 
 
 
@@ -531,25 +545,35 @@ function chartData(data,event_data){
 
   // HOVER LINE
   var hoverLineGroup = svg.append("g") 
-            .attr("class", "hover-line");
+    .attr("class", "hover-line")
+    .style("pointer-events", "none") // Stop line interferring with cursor
+    .style("opacity", 1e-6); // Set opacity to zero 
 
   var hoverLine = hoverLineGroup // Create line with basic attributes
-        .append("line")
-            .attr("id", "hover-line")
-            .attr("x1", chart_margin.left + graph_margin.left)
-            .attr("x2", chart_margin.left + graph_margin.left) 
-            .attr("y1", graph_container.y + graph_margin.top)
-            .attr("y2", timeline_container.y+timeline_margin.top+timeline_height)
-            .style("pointer-events", "none") // Stop line interferring with cursor
-            .style("opacity", 1e-6); // Set opacity to zero 
+    .append("line")
+      .attr("id", "hover-line")
+      .attr("x1", 0)
+      .attr("x2", 0) 
+      .attr("y1", graph_container.y + graph_margin.top)
+      .attr("y2", timeline_container.y+timeline_margin.top+timeline_height)
+      .style("pointer-events", "none") // Stop line interferring with cursor
 
+  var hoverDateBG = hoverLineGroup.append('rect')
+    .attr("width","80")
+    .attr("height","20")
+    .attr("x", -40)
+    .attr("y", timeline_container.y+3)
+    .attr("fill", "#EEE")
+    .attr("stroke-width", 0)
+    
 
-  var hoverDate = hoverLineGroup
-        .append('text')
-            .attr("class", "hover-text")
-            .attr("y", graph_container.y + graph_margin.top - 6)
-            .attr("text-anchor", "middle");
-            //.style("fill", "#E6E7E8");
+  var hoverDate = hoverLineGroup.append('text')
+    //.attr("id", "hover-text")
+    .attr("class", "hover-text")
+    .attr("text-anchor", "middle")
+    .attr("y", timeline_container.y+17);
+    
+
 
   var columnNames = d3.keys(data[0]) //grab the key values from your first data row
                                      //these are the same as your column names
@@ -571,46 +595,33 @@ function chartData(data,event_data){
   d3.select("#mouse-tracker") // select chart plot background rect #mouse-tracker
   .on("mousemove", mousemove) // on mousemove activate mousemove function defined below
   .on("mouseout", function() {
-      hoverDate
-          .text(null) // on mouseout remove text for hover date
-
-      d3.select("#hover-line")
-          .style("opacity", 1e-6); // On mouse out making line invisible
-      
-      focus.select("text").text("");    
+      hoverLineGroup.style("opacity", 1e-6); // On mouse out making line invisible
   });
 
   function mousemove() { 
-      var mouse_x = d3.mouse(this)[0]; // Finding mouse x position on rect
+      var mouse_x = d3.mouse(this)[0] - chart_margin.left - graph_margin.left; // Finding mouse x position on rect
       var graph_x = xScale.invert(mouse_x); // 
 
-      //var mouse_y = d3.mouse(this)[1]; // Finding mouse y position on rect
-      //var graph_y = yScale.invert(mouse_y);
-      //console.log(graph_x);
-      
       var format = d3.time.format('%b %d %Y'); // Format hover date text to show three letter month and full year
       
-      hoverDate.text(format(graph_x)) // scale mouse position to xScale date and format it to show month and year
-        .attr("x", mouse_x)
+      hoverDate.text(format(graph_x)); // scale mouse position to xScale date and format it to show month and year
+      hoverLineGroup
+        .attr("transform", "translate("+eval(mouse_x+chart_margin.left+graph_margin.left)+",0)")
+        .style("opacity", 1); // Making line visible
 
 
-      d3.select("#hover-line") // select hover-line and changing attributes to mouse position
-          .attr("x1", mouse_x) 
-          .attr("x2", mouse_x)
-          .style("opacity", 1); // Making line visible
+      // // Legend tooltips // http://www.d3noob.org/2014/07/my-favourite-tooltip-method-for-line.html
 
-      // Legend tooltips // http://www.d3noob.org/2014/07/my-favourite-tooltip-method-for-line.html
+      // var mousex = d3.mouse(this)[0];
 
-      var mousex = d3.mouse(this)[0] - chart_margin.left - graph_margin.left;
-
-      var x0 = xScale.invert(mousex), /* d3.mouse(this)[0] returns the x position on the screen of the mouse. xScale.invert function is reversing the process that we use to map the domain (date) to range (position on screen). So it takes the position on the screen and converts it into an equivalent date! */
-      i = bisectDate(data, x0, 1), // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
-      /*It takes our data array and the date corresponding to the position of or mouse cursor and returns the index number of the data array which has a date that is higher than the cursor position.*/
-      d0 = data[i - 1],
-      d1 = data[i],
-      /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that corresponds to the position of the cursor.*/
-      d = x0 - d0.date > d1.date - x0 ? d1 : d0;
-      /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor. It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
+      // var x0 = xScale.invert(mousex), /* d3.mouse(this)[0] returns the x position on the screen of the mouse. xScale.invert function is reversing the process that we use to map the domain (date) to range (position on screen). So it takes the position on the screen and converts it into an equivalent date! */
+      // i = bisectDate(data, x0, 1), // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
+      // /*It takes our data array and the date corresponding to the position of or mouse cursor and returns the index number of the data array which has a date that is higher than the cursor position.*/
+      // d0 = data[i - 1],
+      // d1 = data[i],
+      // /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that corresponds to the position of the cursor.*/
+      // d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+      // /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor. It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
 
       //d is now the data row for the date closest to the mouse position
 
