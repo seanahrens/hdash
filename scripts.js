@@ -3,7 +3,7 @@
 // Make findMaxY not iterate thru all values to determine max
 
 /* global d3 */
-
+/* global yAxis */
 
 ////////////////
 // LOAD TSVS AND HANDLE DATA
@@ -46,7 +46,7 @@ function chartData(data,event_data){
       scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
       
       graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
-      graph_height = 600,
+      graph_height = 450,
       graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
       
       checkbox_size = 30,
@@ -67,35 +67,40 @@ function chartData(data,event_data){
  // var maxY; // Defined later to update yAxis
   
   
-  // SCALES (Y, X, and ScrubberX)
-  var yScale = d3.scale.linear()
-      .range([graph_height, 0]),
-      
-      xScale = d3.time.scale()
-      .range([0, chart_width]),
-  
-      scrubberxScale = d3.time.scale()
-      .range([0, chart_width]); 
-  
-
-  
-  // LINE & PLOTTED DATA
-  var line = d3.svg.line()
-      .interpolate("basis")
-      .x(function(d) { return xScale(d.date); })
-      .y(function(d) { return yScale(d.rating); })
-      .defined(function(d) { return d.rating; });  // Hiding line value defaults of 0 for missing data
 
 
+
+
+// 0 - 100
+// 0 - 250
+
+// daily health, pain, fatigue, sleep disturbance, anxiery, depression = 0-100
+
+
+// variable based on values:
+
+
+// heartrate (0-200)
+
+// sleep hours (0-24)
+// miles run = (0-30)
+
+// steps (0-30k) 0-10k
+// calories (0-10k) 2k, 3k
+
+
+  var yScales = {}; 
+
+  var measures = d3.keys(data[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
+    return key !== "date"; 
+  });
 
 
   // SET UP COLOR DOMAINS
   var color = d3.scale.category20();
   var timelineColor = d3.scale.category20c();
   
-  color.domain(d3.keys(data[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
-    return key !== "date"; 
-  }));
+  color.domain(measures);
   
   timelineColor.domain(event_data.map(function(event_type){ return event_type.name}));
 
@@ -144,8 +149,7 @@ function chartData(data,event_data){
 
 
 
-    
-    
+  
     
     
 
@@ -153,32 +157,81 @@ function chartData(data,event_data){
   data.forEach(function(d) { d.date = parseDate(d.date); });
 
   // FORMAT DATA FROM TSV INTO CATEGORY ARRAY
-  var categories = color.domain().map(function(name) { // Nest the data into an array of objects with new keys
-    
+  var categories = measures.map(function(name) { // Nest the data into an array of objects with new keys
+    var rating = 0;
+    var highest_rating_so_far = 0;
+
     return {
       name: name, // "name": the csv headers except date
       values: data.map(function(d) { // "values": which has an array of the dates and ratings
+        rating = +(d[name]);
+        if (rating > highest_rating_so_far)
+          highest_rating_so_far = rating;
+        
         return {
           date: d.date, 
           rating: +(d[name]),
           };
       }),
-      visible: (name === "Steps" || name === "Calories" || name === "Depression" || name === "Sleep Hours" || name === "Sleep Disturbance" || name === "Disease Activity"  ? false : true) // "visible": all false except for economy which is true.
+      max_rating: highest_rating_so_far,
+      visible: (name == "Daily Health" || name == "Pain") ? true : false // "visible": all false except for economy which is true.
     };
+     //yScales[name] = d3.scale.linear().range([graph_height, 0]).domain([0,highest_rating_so_far]);
+  });
+
+
+
+// 24
+
+
+
+  // SCALES
+  //var yScaleBuckets = [1,2,4,6,8,10,20,40,60,80,100,200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,3800,4000,4200,8000,10000,20000,40000,80000,100000];
+  //var yScaleBuckets = [1,2,4,8,10,20,40,80,100,200,400,800,1000,2000,4000,8000,10000,20000,40000,80000,100000];
+  var yScaleHundreds = ["Daily Health","Pain", "Fatigue", "Sleep Disturbance", "Anxiety", "Depression"]
+  
+  function findYScaleBucket(measure){
+    if (yScaleHundreds.includes(measure.name))
+      return 100;
+    else
+      // var selected_bucket = 0;
+      // yScaleBuckets.some(function(val){
+      //   selected_bucket = val;
+      //   return (measure.max_rating < val);
+      // })
+      return measure.max_rating;
+  }
+  
+  
+  categories.forEach(function(measure){
+    var aScale = d3.scale.linear()
+      .range([graph_height, 0])
+      .domain([0,findYScaleBucket(measure)]);
+    yScales[measure.name] = aScale;
   });
   
+  // alert(yScales["Pain"]);
+
+  var yScale = d3.scale.linear().range([graph_height, 0]);
+  //scaleY();
+
+  yAxis = d3.svg.axis()
+    .scale(yScale)
+    .orient("left");
+  svg.append("g")
+    .attr("class", "y axis")
+    .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
+    .style("opacity", 1e-6)
+    .call(yAxis);
   
 
-  // SET DOMAINS OF THE SCALES
-  xScale.domain(d3.extent(data, function(d) { return d.date; })); // extent = highest and lowest points, domain is data, range is bouding box
-  scrubberxScale.domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
-  scaleY();
-
-
-
-
-
-
+  var xScale = d3.time.scale()
+      .range([0, chart_width])
+      .domain(d3.extent(data, function(d) { return d.date; })), // extent = highest and lowest points, domain is data, range is bouding box
+  
+      scrubberxScale = d3.time.scale()
+      .range([0, chart_width])
+      .domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
   
 
   // GRIDLINES
@@ -229,15 +282,13 @@ function chartData(data,event_data){
       .scale(xScale)
       .orient("bottom")
       .ticks(8)
-      .tickFormat(d3.time.format("%b %-d")),
-
-  
-      yAxis = d3.svg.axis()
-      .scale(yScale)
-      .orient("left");  
+      .tickFormat(d3.time.format("%b %-d"));
   
 
   // GRAPH AXES
+  
+
+
 
   svg.append("g")
       .attr("class", "x axis")
@@ -246,10 +297,7 @@ function chartData(data,event_data){
       .style("pointer-events", "none"); // Stop line interferring with cursor
 
   
-  svg.append("g")
-      .attr("class", "y axis")
-      .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
-      .call(yAxis)
+
 
 
   //////////
@@ -415,11 +463,11 @@ function chartData(data,event_data){
     // REDRAW/RESCALE Y-AXIS
     //maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
     //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
-    scaleY();
+    //scaleY();
     
-    svg.select(".y.axis") // Redraw yAxis
-      .transition()
-        .call(yAxis);   
+    // svg.select(".y.axis") // Redraw yAxis
+    //   .transition()
+    //     .call(yAxis);   
     svg.select("#y-gridlines")     
       .transition()
       .call(yGridlines);
@@ -428,8 +476,9 @@ function chartData(data,event_data){
     measure.select("path") // Redraw lines based on brush xAxis scale and domain
       .transition()
       .attr("d", function(d){
-          return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
-      });
+          return drawLine(d);
+          //return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
+      })
       
     //REDRAW/RESCALE THE TIMELINE LINES
     event.select("path") // Redraw lines based on brush xAxis scale and domain
@@ -444,6 +493,24 @@ function chartData(data,event_data){
 
 
   // GRAPH LINES
+  
+  
+  function drawLine(d){
+    var nm = d.name;
+    return line.y(function(d) { return yScales[nm](d.rating)})(d.values);
+  }
+  
+
+  // LINE & PLOTTED DATA
+  var line = d3.svg.line()
+      .interpolate("basis")
+      .x(function(d) { return xScale(d.date); })
+      //; })
+      .defined(function(d) { return d.rating; });  // Hiding line value defaults of 0 for missing data
+
+
+
+
 
   var measure = svg.selectAll(".measure")
       .data(categories) // Select nested data and append to new svg group elements
@@ -457,8 +524,9 @@ function chartData(data,event_data){
         return "line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
       })
       .attr("d", function(d) { 
-        return d.visible ? line(d.values) : null; // If array key "visible" = true then draw line, if not then don't 
+        return drawLine(d);
       })
+      .style("opacity", function(d){ return d.visible? 1 : 1e-6})
       .attr("transform", "translate("+chart_margin.left+", "+eval(graph_container.y+graph_margin.top)+")")
       .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
       .style("stroke", function(d) { return color(d.name); })
@@ -486,25 +554,33 @@ function chartData(data,event_data){
 
     .on("click", function(d){ // On click toggle d.visible 
       d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
-
-      // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
-      //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
-      scaleY();
-      
-      svg.select(".y.axis")
-        .transition()
-        .call(yAxis);   
-
       measure.select("path")
         .transition()
-        .attr("d", function(d){
-          return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
-        })
-
+        .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
       measure.select(".checkmark")
         .transition()
-        .attr("display", function(d) { return d.visible ? "block" : "none"; });
-    })
+        .attr("display", function(d){ return d.visible ? "block" : "none"; });     
+      
+      yAxis.scale(yScales[d.name]);
+      svg.select(".y.axis")
+        .call(yAxis)
+        .attr("fill", color(d.name))
+        .transition()
+        .style("opacity", d.visible ? 1 : 1e-6); // Set opacity to zero 
+      })
+      
+      // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
+      //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+      //scaleY();
+    
+      // REDRAW/RESCALE THE LINES
+
+      // measure.select("path")
+      //   .transition()
+      //   .attr("d", function(d){
+      //     return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
+      //   })
+
     
 
     // MAKE LINE THICKER WHEN THE LEGEND ITEM IS HOVERED OVER
@@ -658,9 +734,9 @@ function chartData(data,event_data){
   //   return d3.max(maxYValues);
   // }
   
-  function scaleY(){
-    yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
-  }
+  // function scaleY(){
+  //   yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
+  // }
   
   function generateTimelinePath(dates){
     dates = JSON.parse(dates);
@@ -682,6 +758,14 @@ function chartData(data,event_data){
     return path;
   }
   
+  function includes(k) {
+    for(var i=0; i < this.length; i++){
+      if( this[i] === k || ( this[i] !== this[i] && k !== k ) ){
+        return true;
+      }
+    }
+    return false;
+  }
   
   
   function shuffle(array) {
