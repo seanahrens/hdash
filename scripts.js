@@ -5,8 +5,6 @@
 /* global d3 */
 
 
-
-
 ////////////////
 // LOAD TSVS AND HANDLE DATA
 ///////////////
@@ -30,10 +28,6 @@ function handleError(error){
 
 
 
-
-
-
-
 //////////////
 /// CHART THE DATA
 //////////////
@@ -44,19 +38,22 @@ function chartData(data,event_data){
   // MARGINS, HEIGHTS, WIDTHS, ETC
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       
-      chart_margin = {top: 0, bottom: 0, right: 0, left: 160},
-      chart_width = 700,
+      chart_margin = {top: 0, bottom: 0, right: 0, left: 200},
+      chart_width = 760,
       
       scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
       scrubber_height = 50,
       scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
       
       graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
-      graph_height = 400,
+      graph_height = 600,
       graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
       
-      timeline_margin = {top: 20, bottom: 20, right: 0, left: 0},
-      timeline_row_height = 30,
+      checkbox_size = 30,
+      
+      
+      timeline_margin = {top: 40, bottom: 20, right: 0, left: 0},
+      timeline_row_height = 40,
       timeline_row_padding = 5,
       timeline_height = timeline_row_height * event_data.length + timeline_row_padding,
       timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
@@ -80,43 +77,7 @@ function chartData(data,event_data){
       scrubberxScale = d3.time.scale()
       .range([0, chart_width]); 
   
-  
-  /// AXES 
-  var scrubberxAxis = d3.svg.axis() // xAxis for brush slider
-      .scale(scrubberxScale)
-      .orient("top")
-      .tickSize(0, 0, 0),
-  
-      xAxis = d3.svg.axis()
-      .scale(xScale)
-      .orient("bottom")
 
-  
-      yAxis = d3.svg.axis()
-      .scale(yScale)
-      .orient("left");  
-  
-  // GRIDLINES
-  var scrubberxGridlines = d3.svg.axis()
-      .scale(scrubberxScale)
-      .tickFormat("")
-      .ticks(10)
-      .tickSize(scrubber_height, 0, 0),
-      
-    yGridlines = d3.svg.axis()
-      .scale(yScale)
-      .orient("left")
-      .ticks(10)
-      .tickSize(-chart_width, 0, 0)
-      .tickFormat(""),
-  
-    xGridlines = d3.svg.axis()
-    .scale(xScale)
-    .orient("bottom")
-    .ticks(10)
-    .tickSize(-graph_height-timeline_height, 0, 0)
-    .tickFormat("");
-    
   
   // LINE & PLOTTED DATA
   var line = d3.svg.line()
@@ -216,19 +177,31 @@ function chartData(data,event_data){
 
 
 
-  // GRAPH AXES
 
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_margin.top + graph_height)+")")
-      .call(xAxis)
-      .style("pointer-events", "none"); // Stop line interferring with cursor
 
   
-  svg.append("g")
-      .attr("class", "y axis")
-      .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
-      .call(yAxis)
+
+  // GRIDLINES
+  var scrubberxGridlines = d3.svg.axis()
+      .scale(scrubberxScale)
+      .tickFormat("")
+      .ticks(10)
+      .tickSize(scrubber_height, 0, 0),
+      
+    yGridlines = d3.svg.axis()
+      .scale(yScale)
+      .orient("left")
+      .ticks(10)
+      .tickSize(-chart_width, 0, 0)
+      .tickFormat(""),
+  
+    xGridlines = d3.svg.axis()
+    .scale(xScale)
+    .orient("bottom")
+    .ticks(10)
+    .tickSize(-timeline_container.height-graph_height, 0, 0)
+    .tickFormat("");
+    
 
   // DRAW GRIDLINES
   svg.append("g")         
@@ -242,8 +215,41 @@ function chartData(data,event_data){
       .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
       .call(yGridlines);
  
+ 
+   /// AXES 
+  var scrubberxAxis = d3.svg.axis() // xAxis for brush slider
+      .scale(scrubberxScale)
+      .orient("top")
+      .ticks(10)
+      .tickSize(0, 0, 0)
+      .tickFormat(d3.time.format("%b '%y")),
 
+  
+      xAxis = d3.svg.axis()
+      .scale(xScale)
+      .orient("bottom")
+      .ticks(8)
+      .tickFormat(d3.time.format("%b %-d")),
 
+  
+      yAxis = d3.svg.axis()
+      .scale(yScale)
+      .orient("left");  
+  
+
+  // GRAPH AXES
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_margin.top + graph_height)+")")
+      .call(xAxis)
+      .style("pointer-events", "none"); // Stop line interferring with cursor
+
+  
+  svg.append("g")
+      .attr("class", "y axis")
+      .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
+      .call(yAxis)
 
 
   //////////
@@ -269,7 +275,7 @@ function chartData(data,event_data){
         .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
 
     event.append("rect")
-      .attr("x", 5)
+      .attr("x", 0)
       .attr("y", timeline_row_padding)
       .attr("height", timeline_row_height - timeline_row_padding)
       .attr("width", chart_width + chart_margin.left -5)
@@ -279,7 +285,7 @@ function chartData(data,event_data){
 
     // ADD LABEL
     event.append("text")
-      .attr("x", 25)
+      .attr("x", 5)
       .attr("class","label")
       .text(function(d) { return d.name})
       .attr("dy", timeline_row_height - timeline_row_padding - 3);
@@ -352,8 +358,7 @@ function chartData(data,event_data){
       .call(scrubberxGridlines);
 
   scrubber.append("g") // Create scrubber xAxis
-      .attr("class", "x axis1")
-      //.attr("fill", "gray")
+      .attr("class", "x axis")
       .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top ) + ")")
       .call(scrubberxAxis);
 
@@ -465,14 +470,14 @@ function chartData(data,event_data){
   // Legend Labels
   measure.append("text")
       .attr("class", "label")
-      .attr("x", 25) 
-      .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace); })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+      .attr("x", checkbox_size + 7) 
+      .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
       .text(function(d) { return d.name; }); 
 
   var checkbox = measure.append("rect")
     .attr("class", "legend-box")
-    .attr("width", 20)
-    .attr("height", 20)                                    
+    .attr("width", checkbox_size)
+    .attr("height", checkbox_size)                                    
     .attr("x", 0) 
     .attr("y", function (d, i) { return graph_container.y + graph_margin.top + (legendSpace)+i*(legendSpace) -14; })  // spacing
     .attr("fill",function(d) { return color(d.name) }) // If array key "visible" = true then color rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
@@ -516,9 +521,10 @@ function chartData(data,event_data){
     
   measure.append("text")
     .attr("class", "checkmark")
-    .attr("x", 3) 
-    .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + 2; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+    .attr("x", checkbox_size / 2) 
+    .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
     .text("x")
+    .style("text-anchor", "middle")
     .attr("display", function(d) { return d.visible ? "block" : "none"; })
     .style("pointer-events", "none");
 
@@ -559,10 +565,10 @@ function chartData(data,event_data){
       .style("pointer-events", "none") // Stop line interferring with cursor
 
   var hoverDateBG = hoverLineGroup.append('rect')
-    .attr("width","80")
-    .attr("height","20")
-    .attr("x", -40)
-    .attr("y", timeline_container.y+3)
+    .attr("width","120")
+    .attr("height","30")
+    .attr("x", -60)
+    .attr("y", timeline_container.y+timeline_margin.top/4)
     .attr("fill", "#EEE")
     .attr("stroke-width", 0)
     
@@ -571,7 +577,7 @@ function chartData(data,event_data){
     //.attr("id", "hover-text")
     .attr("class", "hover-text")
     .attr("text-anchor", "middle")
-    .attr("y", timeline_container.y+17);
+    .attr("y", timeline_container.y+(timeline_margin.top/2)+10);
     
 
 

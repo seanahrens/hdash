@@ -1,6 +1,6 @@
 
 body {
-  font: 10px sans-serif;
+  font: 18px sans-serif;
   background-color: white;
 }
 
@@ -37,7 +37,7 @@ html, body {
 }
 .line {
   fill: none;
-  stroke-width: 1.5px;
+  stroke-width: 2.5px;
 }
 .legend-box {
   cursor: pointer;  
@@ -55,6 +55,9 @@ html, body {
 .x.axis path, .x.axis1 path {
   display: none;
 }
+.axis text {
+  font-size: 14px;
+}
 
 
 
@@ -71,14 +74,14 @@ html, body {
 
 /* LEGEND */
 .checkmark {
-  font-size: 25px; 
+  font-size: 30px; 
   font-weight: bold;
   text-anchor: top;
 }
 
 
 .label {
-  font-size: 12px;
+  /*font-size: 12px;*/
 }
 
 
