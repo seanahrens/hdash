@@ -1,23 +1,19 @@
-// TODO
-// Optimize Code: 
-// Make findMaxY not iterate thru all values to determine max
-
 /* global d3 */
 /* global yAxis */
 
 ////////////////
-// LOAD TSVS AND HANDLE DATA
+// LOAD TSVS AND HANDLE graphData
 ///////////////
 
-d3.tsv("health_data.tsv", function(error, data) { 
+d3.tsv("graph_data.tsv", function(error, graphData) { 
     if (error)
       handleError(error);
     else
-      d3.tsv("health_events.tsv", function(error, event_data) { 
+      d3.tsv("timeline_data.tsv", function(error, timelineData) { 
         if (error)
           handleError(error);
         else
-          chartData(data, event_data);
+          drawChart(graphData, timelineData);
       });
 });
 
@@ -29,11 +25,10 @@ function handleError(error){
 
 
 //////////////
-/// CHART THE DATA
+/// DRAW THE CHART
 //////////////
 
-function chartData(data,event_data){  
-
+function drawChart(graphData,timelineData){  
 
   // MARGINS, HEIGHTS, WIDTHS, ETC
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
@@ -55,106 +50,23 @@ function chartData(data,event_data){
       timeline_margin = {top: 40, bottom: 20, right: 0, left: 0},
       timeline_row_height = 40,
       timeline_row_padding = 5,
-      timeline_height = timeline_row_height * event_data.length + timeline_row_padding,
+      timeline_height = timeline_row_height * timelineData.length + timeline_row_padding,
       timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
         
       chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
   
-  
 
-  var parseDate = d3.time.format("%m/%d/%Y").parse;
-  var bisectDate = d3.bisector(function(d) { return d.date; }).left;
- // var maxY; // Defined later to update yAxis
-  
-  
-
-
-
-
-// 0 - 100
-// 0 - 250
-
-// daily health, pain, fatigue, sleep disturbance, anxiery, depression = 0-100
-
-
-// variable based on values:
-
-
-// heartrate (0-200)
-
-// sleep hours (0-24)
-// miles run = (0-30)
-
-// steps (0-30k) 0-10k
-// calories (0-10k) 2k, 3k
-
-
-  var yScales = {}; 
-
-  var measures = d3.keys(data[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
+  //////////////
+  // PROCESS THE DATA
+  //////////////
+  var measures = d3.keys(graphData[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
     return key !== "date"; 
   });
-
-
-  // SET UP COLOR DOMAINS
-  var color = d3.scale.category20();
-  var timelineColor = d3.scale.category20c();
   
-  color.domain(measures);
-  
-  timelineColor.domain(event_data.map(function(event_type){ return event_type.name}));
-
-
-
-
-
-
-
-
-
-
-
-  
-  /////// 
-  // SVG DRAWING TIME!
-  //////
-
-  var svg = d3.select("body").append("svg")
-    .attr("id", "svg")
-    .attr("width", chart_width + chart_margin.left + chart_margin.right)
-    .attr("height", chart_container_height+5);
-  //.append("g")
-    //.attr("transform", "translate(" + svg_margin.left + "," + svg_margin.top + ")");
-  
-  // MOUSE TRACKER (invisible rect)
-  svg.append("rect")
-    .attr("width", chart_width)
-    .attr("height", graph_height + graph_margin.bottom + timeline_margin.top + timeline_height)                                    
-    .attr("x", chart_margin.left) 
-    .attr("y", graph_container.y + graph_margin.top)
-    .attr("id", "mouse-tracker")
-    //.attr("stroke", "white")
-    .style("fill", "white");
-    //.style("opacity",.5);
-      
-  // CLIP PATH RECT AROUND GRAPH (to hide parts of lines that are out of current view)
-  svg.append("defs") //todo probably assumes xy of 00 but we do need to place it with the graph
-    .append("clipPath") 
-      .attr("id", "clip")
-      .append("rect")
-      .attr("width", chart_width)
-      .attr("height", chart_container_height); 
-
-  
-
-
-
-  
-    
-    
-
   // FORMAT DATES USING PARSER
-  data.forEach(function(d) { d.date = parseDate(d.date); });
+  var parseDate = d3.time.format("%m/%d/%Y").parse;
+  graphData.forEach(function(d) { d.date = parseDate(d.date); });
+
 
   // FORMAT DATA FROM TSV INTO CATEGORY ARRAY
   var categories = measures.map(function(name) { // Nest the data into an array of objects with new keys
@@ -163,7 +75,7 @@ function chartData(data,event_data){
 
     return {
       name: name, // "name": the csv headers except date
-      values: data.map(function(d) { // "values": which has an array of the dates and ratings
+      values: graphData.map(function(d) { // "values": which has an array of the dates and ratings
         rating = +(d[name]);
         if (rating > highest_rating_so_far)
           highest_rating_so_far = rating;
@@ -180,12 +92,25 @@ function chartData(data,event_data){
   });
 
 
+  // SET UP COLOR DOMAINS
+  var graphColor = d3.scale.category20()
+    .domain(measures);
+  var timelineColor = d3.scale.category20c()
+    .domain(timelineData.map(function(event_type){ return event_type.name}));
 
-// 24
+  var bisectDate = d3.bisector(function(d) { return d.date; }).left;
 
 
 
+
+
+  //////////////
   // SCALES
+  //////////////
+  
+  
+  /// Y SCALE
+  var yScales = {}; 
   //var yScaleBuckets = [1,2,4,6,8,10,20,40,60,80,100,200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,3800,4000,4200,8000,10000,20000,40000,80000,100000];
   //var yScaleBuckets = [1,2,4,8,10,20,40,80,100,200,400,800,1000,2000,4000,8000,10000,20000,40000,80000,100000];
   var yScaleHundreds = ["Daily Health","Pain", "Fatigue", "Sleep Disturbance", "Anxiety", "Depression"]
@@ -201,8 +126,6 @@ function chartData(data,event_data){
       // })
       return measure.max_rating;
   }
-  
-  
   categories.forEach(function(measure){
     var aScale = d3.scale.linear()
       .range([graph_height, 0])
@@ -210,12 +133,59 @@ function chartData(data,event_data){
     yScales[measure.name] = aScale;
   });
   
-  // alert(yScales["Pain"]);
-
   var yScale = d3.scale.linear().range([graph_height, 0]);
-  //scaleY();
 
-  yAxis = d3.svg.axis()
+  // X SCALE
+  var xScale = d3.time.scale()
+      .range([0, chart_width])
+      .domain(d3.extent(graphData, function(d) { return d.date; })), // extent = highest and lowest points, domain is graphData, range is bouding box
+  
+      scrubberxScale = d3.time.scale()
+      .range([0, chart_width])
+      .domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
+  
+
+  
+
+  
+  /////// 
+  // SVG - DRAW THE CANVAS
+  //////
+
+  var svg = d3.select("body").append("svg")
+    .attr("id", "svg")
+    .attr("width", chart_width + chart_margin.left + chart_margin.right)
+    .attr("height", chart_container_height+5);
+
+  // MOUSE TRACKER (invisible rect)
+  svg.append("rect")
+    .attr("width", chart_width)
+    .attr("height", graph_height + graph_margin.bottom + timeline_margin.top + timeline_height)                                    
+    .attr("x", chart_margin.left) 
+    .attr("y", graph_container.y + graph_margin.top)
+    .attr("id", "mouse-tracker")
+    .style("fill", "white");
+
+  // CLIP PATH RECT AROUND GRAPH (to hide parts of lines that are out of current view)
+  svg.append("defs") //todo probably assumes xy of 00 but we do need to place it with the graph
+    .append("clipPath") 
+      .attr("id", "clip")
+      .append("rect")
+      .attr("width", chart_width)
+      .attr("height", chart_container_height); 
+
+  
+  
+  
+  
+  
+  
+  /////////
+  // AXISES aka AXES
+  /////////
+
+  // Y AXIS
+  var yAxis = d3.svg.axis()
     .scale(yScale)
     .orient("left");
   svg.append("g")
@@ -223,80 +193,70 @@ function chartData(data,event_data){
     .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
     .style("opacity", 1e-6)
     .call(yAxis);
-  
-
-  var xScale = d3.time.scale()
-      .range([0, chart_width])
-      .domain(d3.extent(data, function(d) { return d.date; })), // extent = highest and lowest points, domain is data, range is bouding box
-  
-      scrubberxScale = d3.time.scale()
-      .range([0, chart_width])
-      .domain(xScale.domain()); // Setting a duplicate xdomain for brushing reference later
-  
-
-  // GRIDLINES
-  var scrubberxGridlines = d3.svg.axis()
-      .scale(scrubberxScale)
-      .tickFormat("")
-      .ticks(10)
-      .tickSize(scrubber_height, 0, 0),
-      
-    yGridlines = d3.svg.axis()
-      .scale(yScale)
-      .orient("left")
-      .ticks(10)
-      .tickSize(-chart_width, 0, 0)
-      .tickFormat(""),
-  
-    xGridlines = d3.svg.axis()
-    .scale(xScale)
-    .orient("bottom")
-    .ticks(10)
-    .tickSize(-timeline_container.height-graph_height, 0, 0)
-    .tickFormat("");
-    
-
-  // DRAW GRIDLINES
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","x-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(timeline_container.y+timeline_margin.top+timeline_height ) + ")")
-      .call(xGridlines);
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","y-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
-      .call(yGridlines);
  
- 
-   /// AXES 
-  var scrubberxAxis = d3.svg.axis() // xAxis for brush slider
-      .scale(scrubberxScale)
-      .orient("top")
-      .ticks(10)
-      .tickSize(0, 0, 0)
-      .tickFormat(d3.time.format("%b '%y")),
-
-  
-      xAxis = d3.svg.axis()
+  // X AXIS
+  var xAxis = d3.svg.axis()
       .scale(xScale)
       .orient("bottom")
       .ticks(8)
       .tickFormat(d3.time.format("%b %-d"));
-  
-
-  // GRAPH AXES
-  
-
-
-
   svg.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate("+chart_margin.left+","+eval(graph_container.y+graph_margin.top + graph_height)+")")
       .call(xAxis)
       .style("pointer-events", "none"); // Stop line interferring with cursor
 
+   
+  // SCRUBBER X AXIS 
+  var scrubberxAxis = d3.svg.axis() // xAxis for brush slider
+      .scale(scrubberxScale)
+      .orient("top")
+      .ticks(10)
+      .tickSize(0, 0, 0)
+      .tickFormat(d3.time.format("%b '%y"));
+
+
+
+
+  /////////////
+  // GRIDLINES
+  ////////////
   
+  // Y GRID
+  var yGridlines = d3.svg.axis()
+    .scale(yScale)
+    .orient("left")
+    .ticks(10)
+    .tickSize(-chart_width, 0, 0)
+    .tickFormat("");
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","y-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
+      .call(yGridlines);
+      
+  // X GRID
+  var xGridlines = d3.svg.axis()
+    .scale(xScale)
+    .orient("bottom")
+    .ticks(10)
+    .tickSize(-timeline_container.height-graph_height, 0, 0)
+    .tickFormat("");
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","x-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(timeline_container.y+timeline_margin.top+timeline_height ) + ")")
+      .call(xGridlines);
+      
+  // SCRUBBER X GRID
+  var scrubberxGridlines = d3.svg.axis()
+    .scale(scrubberxScale)
+    .tickFormat("")
+    .ticks(10)
+    .tickSize(scrubber_height, 0, 0);  
+
+ 
+
 
 
 
@@ -304,64 +264,44 @@ function chartData(data,event_data){
   //TIMELINE
   //////////
   
-    // svg.append("rect")
-    //   .attr("x",0)
-    //   .attr("y",timeline_container.y+timeline_margin.top)
-    //   .attr("height", timeline_row_height * event_data.length + timeline_row_padding)
-    //   .attr("width", chart_width + chart_margin.left)
-    //   .attr("fill", "#DDD")
+  var event_categories = [];
 
-           
-    //   .style("pointer-events", "none"); // Stop line interferring with cursor
+  // MAIN TIMELINE BOUNDING BOX
+  var event = svg.selectAll(".event")
+      .data(timelineData) // Select nested data and append to new svg group elements
+    .enter().append("g")
+      .attr("class", "event")
+      .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
 
-    var event_categories = [];
-  
-    var event = svg.selectAll(".event")
-        .data(event_data) // Select nested data and append to new svg group elements
-      .enter().append("g")
-        .attr("class", "event")
-        .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
+  // BACKGROUND ROW FOR EACH EVENT
+  event.append("rect")
+    .attr("x", 0)
+    .attr("y", timeline_row_padding)
+    .attr("height", timeline_row_height - timeline_row_padding)
+    .attr("width", chart_width + chart_margin.left -5)
+    .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
+    .style("pointer-events", "none") // Stop line interferring with cursor
+    .style("opacity", .2) 
 
-    event.append("rect")
-      .attr("x", 0)
-      .attr("y", timeline_row_padding)
-      .attr("height", timeline_row_height - timeline_row_padding)
-      .attr("width", chart_width + chart_margin.left -5)
-      .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
-      .style("pointer-events", "none") // Stop line interferring with cursor
-      .style("opacity", .2) 
+  // LABELS FOR EACH EVENT
+  event.append("text")
+    .attr("x", 5)
+    .attr("class","label")
+    .text(function(d) { return d.name})
+    .attr("dy", timeline_row_height - timeline_row_padding - 3);
 
-    // ADD LABEL
-    event.append("text")
-      .attr("x", 5)
-      .attr("class","label")
-      .text(function(d) { return d.name})
-      .attr("dy", timeline_row_height - timeline_row_padding - 3);
-
-
-
-
-
-
-
-
-
-
-
-
-    // ADD TIMELINE LINES
-    event.append("path")
-      .attr("class", "timeline-line")
-      .style("pointer-events", "none") // Stop line interferring with cursor
-      .attr("id", function(d) {
-        return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
-      })
-      .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
-      .style("stroke", function(d) { return timelineColor(d.name); })
-      .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
-      .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
-      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
-
+  // TIMELINE LINES
+  event.append("path")
+    .attr("class", "timeline-line")
+    .style("pointer-events", "none") // Stop line interferring with cursor
+    .attr("id", function(d) {
+      return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
+    })
+    .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
+    .style("stroke", function(d) { return timelineColor(d.name); })
+    .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
+    .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
+    .attr("d",function(d){ return generateTimelinePath(d.dates) });   
 
 
 
@@ -377,8 +317,8 @@ function chartData(data,event_data){
     
   var brush = d3.svg.brush()
     .x(scrubberxScale)
-    .on("brushend", brushend)
-    .on("brushstart", brushstart);
+    .on("brushend", scrubberAdjustComplete)
+    .on("brushstart", scrubberAdjustStart);
 
   var scrubberArea = d3.svg.area() // Set attributes for area chart in brushing scrubber graph
     .interpolate("monotone")
@@ -418,7 +358,6 @@ function chartData(data,event_data){
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
     .attr("width", chart_width)
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
-      //.attr("fill", "#E6E7E8"); 
 
   //append the brush for the selection of subsection  
   scrubber.append("g")
@@ -427,90 +366,20 @@ function chartData(data,event_data){
     .selectAll("rect")
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
-      //.attr("fill", "#E6E7E8"); 
-
-  function brushstart() {
-    d3.selectAll("#fake-brush").classed("brush",false);
-  }   
-  
-  
-  
-  
-  
-  
-  
-  /////////
-  /// UPDATE LINES WHEN TIMELINE ADJUSTED
-  ////////
-  
-  
-  function brushend() {
-    // TOGGLE FAKE BRUSH EFFECT IF NO AREA SELECTED
-    if(brush.empty())
-      d3.selectAll("#fake-brush").classed("brush",true);
-    else
-      d3.selectAll("#fake-brush").classed("brush",false);
-   
-    // REDRAW/RESCALE X-AXIS
-    xScale.domain(brush.empty() ? scrubberxScale.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
-    svg.select(".x.axis")
-      .transition()
-      .call(xAxis);
-    svg.select("#x-gridlines")     
-      .transition()
-      .call(xGridlines);
-
-    // REDRAW/RESCALE Y-AXIS
-    //maxY = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
-    //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
-    //scaleY();
-    
-    // svg.select(".y.axis") // Redraw yAxis
-    //   .transition()
-    //     .call(yAxis);   
-    svg.select("#y-gridlines")     
-      .transition()
-      .call(yGridlines);
-  
-    // REDRAW/RESCALE THE LINES
-    measure.select("path") // Redraw lines based on brush xAxis scale and domain
-      .transition()
-      .attr("d", function(d){
-          return drawLine(d);
-          //return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
-      })
-      
-    //REDRAW/RESCALE THE TIMELINE LINES
-    event.select("path") // Redraw lines based on brush xAxis scale and domain
-      .transition()
-      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
-
-  }    
 
 
+  
 
 
-
-
+  /////////////////
   // GRAPH LINES
+  /////////////////
   
-  
-  function drawLine(d){
-    var nm = d.name;
-    return line.y(function(d) { return yScales[nm](d.rating)})(d.values);
-  }
-  
-
-  // LINE & PLOTTED DATA
+  // GENERATE LINES
   var line = d3.svg.line()
       .interpolate("basis")
       .x(function(d) { return xScale(d.date); })
-      //; })
       .defined(function(d) { return d.rating; });  // Hiding line value defaults of 0 for missing data
-
-
-
-
 
   var measure = svg.selectAll(".measure")
       .data(categories) // Select nested data and append to new svg group elements
@@ -524,15 +393,17 @@ function chartData(data,event_data){
         return "line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
       })
       .attr("d", function(d) { 
-        return drawLine(d);
+        return drawGraphLine(d);
       })
       .style("opacity", function(d){ return d.visible? 1 : 1e-6})
       .attr("transform", "translate("+chart_margin.left+", "+eval(graph_container.y+graph_margin.top)+")")
       .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
-      .style("stroke", function(d) { return color(d.name); })
+      .style("stroke", function(d) { return graphColor(d.name); })
       
       
-  // LEGEND
+  /////////////
+  // GRAPH LEGEND & LABELS
+  /////////////
   var legendSpace = graph_height / categories.length; // 450 (just changed to height)/number of measures (ex. 40)    
 
   // Legend Labels
@@ -542,59 +413,18 @@ function chartData(data,event_data){
       .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
       .text(function(d) { return d.name; }); 
 
+  // Checkboxes
   var checkbox = measure.append("rect")
     .attr("class", "legend-box")
     .attr("width", checkbox_size)
     .attr("height", checkbox_size)                                    
     .attr("x", 0) 
     .attr("y", function (d, i) { return graph_container.y + graph_margin.top + (legendSpace)+i*(legendSpace) -14; })  // spacing
-    .attr("fill",function(d) { return color(d.name) }) // If array key "visible" = true then color rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
+    .attr("fill",function(d) { return graphColor(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
     .attr("stroke", "#000" )
     .style("stroke-width", 1.5) 
-
-    .on("click", function(d){ // On click toggle d.visible 
-      d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
-      measure.select("path")
-        .transition()
-        .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
-      measure.select(".checkmark")
-        .transition()
-        .attr("display", function(d){ return d.visible ? "block" : "none"; });     
-      
-      yAxis.scale(yScales[d.name]);
-      svg.select(".y.axis")
-        .call(yAxis)
-        .attr("fill", color(d.name))
-        .transition()
-        .style("opacity", d.visible ? 1 : 1e-6); // Set opacity to zero 
-      })
-      
-      // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
-      //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
-      //scaleY();
-    
-      // REDRAW/RESCALE THE LINES
-
-      // measure.select("path")
-      //   .transition()
-      //   .attr("d", function(d){
-      //     return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
-      //   })
-
-    
-
-    // MAKE LINE THICKER WHEN THE LEGEND ITEM IS HOVERED OVER
-    .on("mouseover", function(d){
-      d3.select("#line-" + d.name.replace(" ", "").replace("/", ""))
-        .transition()
-        .style("stroke-width", 3);  
-    })
-    .on("mouseout", function(d){
-      d3.select("#line-" + d.name.replace(" ", "").replace("/", ""))
-        .transition()
-        .style("stroke-width", 1.5);
-    })
-    
+  
+  // Label Text  
   measure.append("text")
     .attr("class", "checkmark")
     .attr("x", checkbox_size / 2) 
@@ -607,25 +437,10 @@ function chartData(data,event_data){
 
 
 
-  // FRAMING OF SCALABLE ELEMENTS
-
-  svg.append("rect")
-    .attr("width", chart_width)
-    .attr("height", graph_height+graph_margin.bottom+timeline_margin.top+timeline_height)                                    
-    .attr("x", chart_margin.left) 
-    .attr("y", graph_container.y+graph_margin.top)
-    .attr("fill", "none")
-    .attr("stroke", "#000" )
-    .style("stroke-width", 1.5) 
-
-
-
-
-
-
-
-
-  // HOVER LINE
+  //////////////////////////
+  // HOVER LINE & DATA VALUES
+  ////////////////////////
+  
   var hoverLineGroup = svg.append("g") 
     .attr("class", "hover-line")
     .style("pointer-events", "none") // Stop line interferring with cursor
@@ -648,39 +463,99 @@ function chartData(data,event_data){
     .attr("fill", "#EEE")
     .attr("stroke-width", 0)
     
-
   var hoverDate = hoverLineGroup.append('text')
-    //.attr("id", "hover-text")
     .attr("class", "hover-text")
     .attr("text-anchor", "middle")
     .attr("y", timeline_container.y+(timeline_margin.top/2)+10);
     
 
+  
 
-  var columnNames = d3.keys(data[0]) //grab the key values from your first data row
+  
+
+  
+  
+  
+  
+  
+  
+  
+/////////////////  
+// INTERACTION
+/////////////////
+ 
+ 
+
+  /////////
+  /// SCRUBBER MOVEMENT RESPONSE
+  ////////
+ 
+  function scrubberAdjustStart() {
+    d3.selectAll("#fake-brush").classed("brush",false);
+  }   
+  
+  function scrubberAdjustComplete() {
+    // TOGGLE FAKE BRUSH EFFECT IF NO AREA SELECTED
+    if(brush.empty())
+      d3.selectAll("#fake-brush").classed("brush",true);
+    else
+      d3.selectAll("#fake-brush").classed("brush",false);
+   
+    // RESCALE AXES
+    xScale.domain(brush.empty() ? scrubberxScale.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
+    svg.select(".x.axis")
+      .transition()
+      .call(xAxis);
+    svg.select("#x-gridlines")     
+      .transition()
+      .call(xGridlines);
+    svg.select("#y-gridlines")     
+      .transition()
+      .call(yGridlines);
+  
+    // REDRAW/RESCALE THE GRAPH LINES
+    measure.select("path") // Redraw lines based on brush xAxis scale and domain
+      .transition()
+      .attr("d", function(d){ return drawGraphLine(d); })
+      
+    //REDRAW/RESCALE THE TIMELINE LINES
+    event.select("path") // Redraw lines based on brush xAxis scale and domain
+      .transition()
+      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
+
+  }    
+ 
+ 
+ 
+  //////////////////////
+  // HOVER LINE INTERACTION
+  //////////////////////////
+ 
+  //var columnNames = measures;
+  //= d3.keys(graphData[0]) //grab the key values from your first data row
                                      //these are the same as your column names
-                  .slice(1); //remove the first column name (`date`);
+  //   //              .slice(1); //remove the first column name (`date`);
 
-  var focus = measure.select("g") // create group elements to house tooltip text
-      .data(columnNames) // bind each column name date to each g element
-    .enter().append("g") //create one <g> for each columnName
-      .attr("class", "focus"); 
+  // var focus = measure.select("g") // create group elements to house tooltip text
+  //     .data(columnNames) // bind each column name date to each g element
+  //   .enter().append("g") //create one <g> for each columnName
+  //     .attr("class", "focus"); 
 
 
   // The data values dyanmically updated based on hoverline
-  focus.append("text") // http://stackoverflow.com/questions/22064083/d3-js-multi-series-chart-with-y-value-tracking
-        .attr("class", "tooltip")
-        .attr("x", 100) // position tooltips  
-        .attr("y", function (d, i) { return (legendSpace)+i*(legendSpace) + graph_container.y + graph_margin.top; }); // (return (11.25/2 =) 5.625) + i * (5.625) // position tooltips       
+  // focus.append("text") // http://stackoverflow.com/questions/22064083/d3-js-multi-series-chart-with-y-value-tracking
+  //       .attr("class", "tooltip")
+  //       .attr("x", 100) // position tooltips  
+  //       .attr("y", function (d, i) { return (legendSpace)+i*(legendSpace) + graph_container.y + graph_margin.top; }); // (return (11.25/2 =) 5.625) + i * (5.625) // position tooltips       
 
   // Add mouseover events for hover line.
   d3.select("#mouse-tracker") // select chart plot background rect #mouse-tracker
-  .on("mousemove", mousemove) // on mousemove activate mousemove function defined below
+  .on("mousemove", drawHoverLine) // on mousemove activate mousemove function defined below
   .on("mouseout", function() {
       hoverLineGroup.style("opacity", 1e-6); // On mouse out making line invisible
   });
 
-  function mousemove() { 
+  function drawHoverLine() { 
       var mouse_x = d3.mouse(this)[0] - chart_margin.left - graph_margin.left; // Finding mouse x position on rect
       var graph_x = xScale.invert(mouse_x); // 
 
@@ -697,7 +572,7 @@ function chartData(data,event_data){
       // var mousex = d3.mouse(this)[0];
 
       // var x0 = xScale.invert(mousex), /* d3.mouse(this)[0] returns the x position on the screen of the mouse. xScale.invert function is reversing the process that we use to map the domain (date) to range (position on screen). So it takes the position on the screen and converts it into an equivalent date! */
-      // i = bisectDate(data, x0, 1), // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
+      // i = bisectDate(graphData, x0, 1), // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
       // /*It takes our data array and the date corresponding to the position of or mouse cursor and returns the index number of the data array which has a date that is higher than the cursor position.*/
       // d0 = data[i - 1],
       // d1 = data[i],
@@ -713,31 +588,72 @@ function chartData(data,event_data){
       //   //elements, each one inherits the data from the focus <g>
       //   return (d[columnName]);
       // });
-  }
+  } 
+ 
+ 
+ 
+  //////////////////
+  // GRAPH CHECKBOX INTERACTION
+  //////////////////
+  checkbox.on("click", function(d){ // On click toggle d.visible 
+    d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
+    measure.select("path")
+      .transition()
+      .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+    measure.select(".checkmark")
+      .transition()
+      .attr("display", function(d){ return d.visible ? "block" : "none"; });     
+    
+    yAxis.scale(yScales[d.name]);
+    svg.select(".y.axis")
+      .call(yAxis)
+      .attr("fill", graphColor(d.name))
+      .transition()
+      .style("opacity", d.visible ? 1 : 1e-6); // Set opacity to zero 
+    })
+    
+    // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
+    //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
+    //scaleY();
   
+    // REDRAW/RESCALE THE LINES
 
-  
+    // measure.select("path")
+    //   .transition()
+    //   .attr("d", function(d){
+    //     return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
+    //   })
 
-  
-  
-/////////////////  
-// HELPER FUNCTIONS
-/////////////////
 
-  // function findMaxY(data){  // Define function "findMaxY"
-  //   var maxYValues = data.map(function(d) { 
-  //     if (d.visible){
-  //       return d3.max(d.values, function(value) { // Return max rating value
-  //         return value.rating; });
-  //     }
-  //   });
-  //   return d3.max(maxYValues);
-  // }
-  
-  // function scaleY(){
-  //   yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
-  // }
-  
+  // MAKE LINE THICKER WHEN THE LEGEND ITEM IS HOVERED OVER
+  // checkbox.on("mouseover", function(d){
+  //   d3.select("#line-" + d.name.replace(" ", "").replace("/", ""))
+  //     .transition()
+  //     .style("stroke-width", 3);  
+  // })
+  // checkbox.on("mouseout", function(d){
+  //   d3.select("#line-" + d.name.replace(" ", "").replace("/", ""))
+  //     .transition()
+  //     .style("stroke-width", 1.5);
+  // })
+ 
+ 
+ 
+ 
+ 
+ 
+////////// 
+// HELPERS 
+//////////
+ 
+ 
+  // GENERATE GRAPH LINES FROM DATA
+  function drawGraphLine(d){
+    var nm = d.name;
+    return line.y(function(d) { return yScales[nm](d.rating)})(d.values);
+  } 
+ 
+  // GENERATE TIMELINE LINES FROM DATE ARRAY
   function generateTimelinePath(dates){
     dates = JSON.parse(dates);
     var path = "";
@@ -754,9 +670,13 @@ function chartData(data,event_data){
         else // just use the spans data as defined
           path += "H "+xScale(parseDate(datespan[1]))+" ";
     });
-  
     return path;
   }
+  
+  
+  
+  
+  
   
   function includes(k) {
     for(var i=0; i < this.length; i++){
@@ -790,3 +710,38 @@ function chartData(data,event_data){
   }
 
 }
+
+
+
+  // function findMaxY(graphData){  // Define function "findMaxY"
+  //   var maxYValues = data.map(function(d) { 
+  //     if (d.visible){
+  //       return d3.max(d.values, function(value) { // Return max rating value
+  //         return value.rating; });
+  //     }
+  //   });
+  //   return d3.max(maxYValues);
+  // }
+  
+  // function scaleY(){
+  //   yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
+  // }
+  
+  
+  
+  
+  
+  
+    // FRAMING OF SCALABLE ELEMENTS
+
+  // svg.append("rect")
+  //   .attr("width", chart_width)
+  //   .attr("height", graph_height+graph_margin.bottom+timeline_margin.top+timeline_height)                                    
+  //   .attr("x", chart_margin.left) 
+  //   .attr("y", graph_container.y+graph_margin.top)
+  //   .attr("fill", "none")
+  //   .attr("stroke", "#000" )
+  //   .style("stroke-width", 1.5) 
+
+
+

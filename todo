@@ -1,0 +1,3 @@
+- add values to vertical line in bubbles as it hovers over the graph
+- clean up y-axis labels/scaling to better match gridlines
+- enable hiding of timeline items below, and drag and drop reordering
