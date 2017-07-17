@@ -59,6 +59,11 @@ function drawChart(graphData,timelineData){
   //////////////
   // PROCESS THE DATA
   //////////////
+  // measures = array of the measure names
+  // graphData = array of hashes = [date, measure1, measure2, measure3]
+  
+  
+  
   var measures = d3.keys(graphData[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
     return key !== "date"; 
   });
@@ -86,7 +91,7 @@ function drawChart(graphData,timelineData){
           };
       }),
       max_rating: highest_rating_so_far,
-      visible: (name == "Daily Health" || name == "Pain") ? true : false // "visible": all false except for economy which is true.
+      visible: (name == "Daily Health" || name == "Pain" || name == "Sleep Disturbance") ? true : false // "visible": all false except for economy which is true.
     };
      //yScales[name] = d3.scale.linear().range([graph_height, 0]).domain([0,highest_rating_so_far]);
   });
@@ -442,35 +447,63 @@ function drawChart(graphData,timelineData){
   ////////////////////////
   
   var hoverLineGroup = svg.append("g") 
-    .attr("class", "hover-line")
+    .attr("class", "hover-line-group")
+
     .style("pointer-events", "none") // Stop line interferring with cursor
     .style("opacity", 1e-6); // Set opacity to zero 
+
 
   var hoverLine = hoverLineGroup // Create line with basic attributes
     .append("line")
       .attr("id", "hover-line")
       .attr("x1", 0)
       .attr("x2", 0) 
-      .attr("y1", graph_container.y + graph_margin.top)
-      .attr("y2", timeline_container.y+timeline_margin.top+timeline_height)
+      .attr("y1", 0)
+      .attr("y2", chart_container_height - scrubber_container.height - chart_margin.bottom)
       .style("pointer-events", "none") // Stop line interferring with cursor
 
-  var hoverDateBG = hoverLineGroup.append('rect')
+  // HOVER DATE
+  var hoverDateGroup = hoverLineGroup.append("g")
+    .attr("transform", "translate(0,"+eval(graph_container.height - graph_margin.top+ 10)+")");
+
+  var hoverDateBG = hoverDateGroup.append('rect')
     .attr("width","120")
     .attr("height","30")
     .attr("x", -60)
-    .attr("y", timeline_container.y+timeline_margin.top/4)
     .attr("fill", "#EEE")
     .attr("stroke-width", 0)
     
-  var hoverDate = hoverLineGroup.append('text')
+  var hoverDate = hoverDateGroup.append('text')
     .attr("class", "hover-text")
     .attr("text-anchor", "middle")
-    .attr("y", timeline_container.y+(timeline_margin.top/2)+10);
-    
+    .attr("dy","1.05em")
 
+  // HOVER VALUES
+  var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
+    .data(categories) // Select nested data and append to new svg group elements
+  .enter().append("g")
+    .attr("class", "hover-value-group")
+    .attr("transform", "translate(0,0)")
+    //.attr("y",graph_container.y + graph_margin.top)
+    .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+
+  var hoverValueBG = hoverValueGroup.append('rect')
+    .attr("width","200")
+    .attr("height","30")
+    .attr("x", 0)
+    .attr("y", -15)
+    .attr("fill", "#EEE")
+    .attr("stroke-width", 0)
+    .style("opacity", 0.2);
   
-
+  var hoverValueText = hoverValueGroup.append('text')
+    .attr("text-anchor", "right")
+    .attr("x",10)
+    .attr("y",0) // just gotta figure out location now.
+    .attr("dy", ".35em")
+    .text(function(d){ return d.name + ": [Value]"; }) // todo add value
+    .style("fill", function(d) { return graphColor(d.name); });
+  
   
 
   
@@ -552,7 +585,7 @@ function drawChart(graphData,timelineData){
   d3.select("#mouse-tracker") // select chart plot background rect #mouse-tracker
   .on("mousemove", drawHoverLine) // on mousemove activate mousemove function defined below
   .on("mouseout", function() {
-      hoverLineGroup.style("opacity", 1e-6); // On mouse out making line invisible
+      //hoverLineGroup.style("opacity", 1e-6); // On mouse out making line invisible
   });
 
   function drawHoverLine() { 
@@ -563,7 +596,7 @@ function drawChart(graphData,timelineData){
       
       hoverDate.text(format(graph_x)); // scale mouse position to xScale date and format it to show month and year
       hoverLineGroup
-        .attr("transform", "translate("+eval(mouse_x+chart_margin.left+graph_margin.left)+",0)")
+        .attr("transform", "translate("+eval(mouse_x+chart_margin.left+graph_margin.left)+","+eval(graph_container.y+graph_margin.top)+")")
         .style("opacity", 1); // Making line visible
 
 
@@ -572,13 +605,21 @@ function drawChart(graphData,timelineData){
       // var mousex = d3.mouse(this)[0];
 
       // var x0 = xScale.invert(mousex), /* d3.mouse(this)[0] returns the x position on the screen of the mouse. xScale.invert function is reversing the process that we use to map the domain (date) to range (position on screen). So it takes the position on the screen and converts it into an equivalent date! */
-      // i = bisectDate(graphData, x0, 1), // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
+      var x0 = graph_x;
+      var i = bisectDate(graphData, x0, 1); // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
       // /*It takes our data array and the date corresponding to the position of or mouse cursor and returns the index number of the data array which has a date that is higher than the cursor position.*/
-      // d0 = data[i - 1],
-      // d1 = data[i],
+      var d0 = graphData[i - 1];
+      var d1 = graphData[i];
       // /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that corresponds to the position of the cursor.*/
-      // d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+      var valueline = x0 - d0.date > d1.date - x0 ? d1 : d0;
       // /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor. It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
+      //alert(d["Pain"]);
+      
+      hoverValueText.text(function(d){ return "" + roundToTwo( yScales[d.name](valueline[d.name]) ) + " " + d.name } );
+      hoverValueText.attr("y", function(d){ return yScales[d.name](valueline[d.name]); } );
+      //hoverValueText.text(function(d){ return valueline[d.name]});
+      //hoverValueGroup.attr("transform", "translate(0, " + function(d){ return yScales[d.name](valueline[d.name]); } + ")");
+      //hoverValueGroup.attr("transform", "translate(0,"+function(d){ return yScales[d.name](valueline[d.name]); }+")");
 
       //d is now the data row for the date closest to the mouse position
 
@@ -675,7 +716,9 @@ function drawChart(graphData,timelineData){
   
   
   
-  
+  function roundToTwo(num) {    
+    return +(Math.round(num + "e+2")  + "e-2");
+  }
   
   
   function includes(k) {

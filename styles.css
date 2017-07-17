@@ -88,7 +88,7 @@ html, body {
 
 /* HOVER EFFECTS */
 
-.hover-line { 
+#hover-line { 
   stroke: #000;
   fill: none;
   stroke-width: 1.5px;
