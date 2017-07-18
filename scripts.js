@@ -428,7 +428,7 @@ function drawChart(graphData,timelineData){
       .style("opacity", function(d){ return d.visible? 1 : 1e-6})
       .attr("transform", "translate("+chart_margin.left+", "+eval(graph_container.y+graph_margin.top)+")")
       .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
-      .style("stroke", function(d) { return graphColor(d.name); })
+      .style("stroke", function(d) { return graphColor(d.name); });
       
       
   /////////////
@@ -436,15 +436,52 @@ function drawChart(graphData,timelineData){
   /////////////
   var legendSpace = graph_height / categories.length; // 450 (just changed to height)/number of measures (ex. 40)    
 
+  // BUTTON TO TOGGLE ON/OFF LINE SELECTION PANEL
+  var legendToggleBtn = svg.append("g")
+    .attr("class", "legend-toggle-btn")
+    .attr("transform", "translate(20,50)");
+  
+  // legendToggleBtn.append("rect")
+  //   .attr("class", "legend-toggle-btn")
+  //   .attr("width",100)
+  //   .attr("height",40);
+  legendToggleBtn.append("text")
+    .text("Select Measures");
+
+
+  var lineLabel = measure.append("text")
+    .attr("class", "line-label")
+    .text(function(d){ return d.name})
+    .attr("x",chart_margin.left - 10)
+    .style("fill", function(d) { return graphColor(d.name); })
+    .style("text-anchor", "end")
+  
+  updateLineLabel();
+  
+  function updateLineLabel(){
+    var first_date = xScale.domain()[0];
+    var firstValues = graphData[0];
+    var i = bisectDate(graphData, first_date, 1); // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
+    console.log(i)
+  
+    lineLabel
+      .attr("y",function(d){ return graph_container.y+graph_margin.top+yScales[d.name](graphData[i][d.name]) })
+      .attr("opacity", function(d){ return d.visible ? 1 : 0});
+  }  
+  
+  var legendGroup = measure.append("g")
+    .attr("class", "legend-group")
+    .attr("opacity", "0");
+
   // Legend Labels
-  measure.append("text")
+  legendGroup.append("text")
       .attr("class", "label")
       .attr("x", checkbox_size + 7) 
       .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
       .text(function(d) { return d.name; }); 
 
   // Checkboxes
-  var checkbox = measure.append("rect")
+  var checkbox = legendGroup.append("rect")
     .attr("class", "legend-box")
     .attr("width", checkbox_size)
     .attr("height", checkbox_size)                                    
@@ -455,7 +492,7 @@ function drawChart(graphData,timelineData){
     .style("stroke-width", 1.5) 
   
   // Label Text  
-  measure.append("text")
+  legendGroup.append("text")
     .attr("class", "checkmark")
     .attr("x", checkbox_size / 2) 
     .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
@@ -473,7 +510,6 @@ function drawChart(graphData,timelineData){
   
   var hoverLineGroup = svg.append("g") 
     .attr("class", "hover-line-group")
-
     .style("pointer-events", "none") // Stop line interferring with cursor
     .style("opacity", 1e-6); // Set opacity to zero 
 
@@ -579,12 +615,14 @@ function drawChart(graphData,timelineData){
     measure.select("path") // Redraw lines based on brush xAxis scale and domain
       .transition()
       .attr("d", function(d){ return drawGraphLine(d); })
+    updateLineLabel();
+
       
     //REDRAW/RESCALE THE TIMELINE LINES
     event.select("path") // Redraw lines based on brush xAxis scale and domain
       .transition()
       .attr("d",function(d){ return generateTimelinePath(d.dates) });   
-
+    
   }    
  
  
@@ -593,28 +631,12 @@ function drawChart(graphData,timelineData){
   // HOVER LINE INTERACTION
   //////////////////////////
  
-  //var columnNames = measures;
-  //= d3.keys(graphData[0]) //grab the key values from your first data row
-                                     //these are the same as your column names
-  //   //              .slice(1); //remove the first column name (`date`);
-
-  // var focus = measure.select("g") // create group elements to house tooltip text
-  //     .data(columnNames) // bind each column name date to each g element
-  //   .enter().append("g") //create one <g> for each columnName
-  //     .attr("class", "focus"); 
-
-
-  // The data values dyanmically updated based on hoverline
-  // focus.append("text") // http://stackoverflow.com/questions/22064083/d3-js-multi-series-chart-with-y-value-tracking
-  //       .attr("class", "tooltip")
-  //       .attr("x", 100) // position tooltips  
-  //       .attr("y", function (d, i) { return (legendSpace)+i*(legendSpace) + graph_container.y + graph_margin.top; }); // (return (11.25/2 =) 5.625) + i * (5.625) // position tooltips       
 
   // Add mouseover events for hover line.
   d3.select("#mouse-tracker") // select chart plot background rect #mouse-tracker
   .on("mousemove", drawHoverLine) // on mousemove activate mousemove function defined below
   .on("mouseout", function() {
-      //hoverLineGroup.style("opacity", 1e-6); // On mouse out making line invisible
+      hoverLineGroup.style("opacity", 1e-6); // On mouse out making line invisible
   });
 
   function drawHoverLine() { 
@@ -637,6 +659,7 @@ function drawChart(graphData,timelineData){
       var x0 = graph_x;
       var i = bisectDate(graphData, x0, 1); // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
       // /*It takes our data array and the date corresponding to the position of or mouse cursor and returns the index number of the data array which has a date that is higher than the cursor position.*/
+      //console.log(x0);
       var d0 = graphData[i - 1];
       var d1 = graphData[i];
       // /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that corresponds to the position of the cursor.*/
@@ -673,45 +696,21 @@ function drawChart(graphData,timelineData){
     hoverValueGroup.style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
     
     updateVisibleMeasures();
+    updateLineLabel();
     
     drawYAxes();
-    // yAxis.scale(yScales[d.name]);
-    // svg.select(".y.axis")
-    //   .call(yAxis)
-    //   .attr("fill", graphColor(d.name))
-      //.transition()
-      //.style("opacity", d.visible ? 1 : 1e-6); // Set opacity to zero 
+    
+  });
   
-    
-    
-  })
-    
-    // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
-    //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
-    //scaleY();
-  
-    // REDRAW/RESCALE THE LINES
-
-    // measure.select("path")
-    //   .transition()
-    //   .attr("d", function(d){
-    //     return d.visible ? line(d.values) : null; // If d.visible is true then draw line for this d selection
-    //   })
-
-
-  // MAKE LINE THICKER WHEN THE LEGEND ITEM IS HOVERED OVER
-  // checkbox.on("mouseover", function(d){
-  //   d3.select("#line-" + d.name.replace(" ", "").replace("/", ""))
-  //     .transition()
-  //     .style("stroke-width", 3);  
-  // })
-  // checkbox.on("mouseout", function(d){
-  //   d3.select("#line-" + d.name.replace(" ", "").replace("/", ""))
-  //     .transition()
-  //     .style("stroke-width", 1.5);
-  // })
- 
- 
+  legendToggleBtn.on("click", function(){
+    if (legendGroup.attr("opacity") == 1){
+      legendGroup.attr("opacity", "0");
+      legendGroup.style("pointer-events", "none");
+    } else { 
+      legendGroup.attr("opacity", "1");
+      legendGroup.style("pointer-events", "all");
+    }
+  });
  
  
  

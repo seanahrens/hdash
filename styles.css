@@ -87,6 +87,10 @@ html, body {
   text-anchor: top;
 }
 
+.legend-toggle-btn {
+  font-size: 12px;
+  text-decoration: underline;
+}
 
 .label {
   /*font-size: 12px;*/
@@ -121,4 +125,17 @@ html, body {
 #mouse-tracker {
   stroke: #E6E7E8;
   stroke-width: 1px;
+}
+
+
+/* LEGEND */
+.legend-toggle-button {
+  stroke-width: 1px;
+  stroke: #000;
+  fill: #FFF;
+}
+
+.line-label {
+  font-size: 12px;
+  font-weight: bold;
 }

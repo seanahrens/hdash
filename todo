@@ -1,3 +1,8 @@
-- add values to vertical line in bubbles as it hovers over the graph
-- clean up y-axis labels/scaling to better match gridlines
+NEXT
 - enable hiding of timeline items below, and drag and drop reordering
+- clean up y-axis labels/scaling to better match gridlines
+
+
+COMPLETE
+X add line labels to left side of graph
+X add values to vertical line in bubbles as it hovers over the graph
