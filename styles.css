@@ -59,6 +59,14 @@ html, body {
   font-size: 14px;
 }
 
+.yAxis text {
+  font-size: 12px;
+}
+
+.yAxis path {
+  display: none;
+}
+
 
 
 /* GRIDLINES */

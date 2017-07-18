@@ -1,5 +1,6 @@
 /* global d3 */
 /* global yAxis */
+/* global visibleMeasures */
 
 ////////////////
 // LOAD TSVS AND HANDLE graphData
@@ -53,15 +54,16 @@ function drawChart(graphData,timelineData){
       timeline_height = timeline_row_height * timelineData.length + timeline_row_padding,
       timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
         
-      chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
+      chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height,
   
+      yAxisSpacing = 40;
 
   //////////////
   // PROCESS THE DATA
   //////////////
   // measures = array of the measure names
   // graphData = array of hashes = [date, measure1, measure2, measure3]
-  
+  // categories = [] of :name, :values = {:date, :rating}, :max_rating, :visible
   
   
   var measures = d3.keys(graphData[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
@@ -91,10 +93,12 @@ function drawChart(graphData,timelineData){
           };
       }),
       max_rating: highest_rating_so_far,
-      visible: (name == "Daily Health" || name == "Pain" || name == "Sleep Disturbance") ? true : false // "visible": all false except for economy which is true.
+      visible: (name == "Daily Health" || name == "Steps" || name == "Sleep Disturbance" || name == "Depression") ? true : false // "visible": all false except for economy which is true.
     };
      //yScales[name] = d3.scale.linear().range([graph_height, 0]).domain([0,highest_rating_so_far]);
   });
+  
+  updateVisibleMeasures();
 
 
   // SET UP COLOR DOMAINS
@@ -116,6 +120,7 @@ function drawChart(graphData,timelineData){
   
   /// Y SCALE
   var yScales = {}; 
+  //var yAxes = {};
   //var yScaleBuckets = [1,2,4,6,8,10,20,40,60,80,100,200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,3800,4000,4200,8000,10000,20000,40000,80000,100000];
   //var yScaleBuckets = [1,2,4,8,10,20,40,80,100,200,400,800,1000,2000,4000,8000,10000,20000,40000,80000,100000];
   var yScaleHundreds = ["Daily Health","Pain", "Fatigue", "Sleep Disturbance", "Anxiety", "Depression"]
@@ -136,6 +141,7 @@ function drawChart(graphData,timelineData){
       .range([graph_height, 0])
       .domain([0,findYScaleBucket(measure)]);
     yScales[measure.name] = aScale;
+    //yAxes[measure.name] = d3.svg.axis().scale(aScale).orient("left");
   });
   
   var yScale = d3.scale.linear().range([graph_height, 0]);
@@ -188,16 +194,10 @@ function drawChart(graphData,timelineData){
   /////////
   // AXISES aka AXES
   /////////
+    
+  // Y-AXISes aka AXES
+  drawYAxes();
 
-  // Y AXIS
-  var yAxis = d3.svg.axis()
-    .scale(yScale)
-    .orient("left");
-  svg.append("g")
-    .attr("class", "y axis")
-    .attr("transform", "translate("+eval(chart_width+chart_margin.left)+", "+eval(graph_container.y+graph_margin.top)+")")
-    .style("opacity", 1e-6)
-    .call(yAxis);
  
   // X AXIS
   var xAxis = d3.svg.axis()
@@ -220,6 +220,31 @@ function drawChart(graphData,timelineData){
       .tickSize(0, 0, 0)
       .tickFormat(d3.time.format("%b '%y"));
 
+
+  
+  function drawYAxes(){
+    
+    var yAxis = svg.selectAll(".yAxis")
+      .data(visibleMeasures, function(d){return d.name;});
+      
+    yAxis.exit().remove();
+    
+    yAxis.enter().append("g")
+      .attr("class", "yAxis")
+      .attr("fill", function(d){ return graphColor(d.name) })
+      .each(function(d) { // IMPORTANT FOR UNDERSTANDING THIS: https://stackoverflow.com/questions/19040846/create-axes-using-data-binding-in-d3
+        var axis = d3.svg.axis()
+          .scale(yScales[d.name])
+          .orient("left")
+          .ticks(5);
+        axis(d3.select(this));
+      });
+      
+    yAxis
+      .attr("transform", function(d) { return "translate("+eval(chart_width+chart_margin.left + (-yAxisSpacing * visibleMeasures.indexOf(d)) )+", "+eval(graph_container.y+graph_margin.top)+")" })
+
+      
+  }
 
 
 
@@ -480,13 +505,16 @@ function drawChart(graphData,timelineData){
 
   // HOVER VALUES
   var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
-    .data(categories) // Select nested data and append to new svg group elements
-  .enter().append("g")
+    .data(categories); // Select nested data and append to new svg group elements
+    //.filter(function(c){ return c.visible })
+  hoverValueGroup.enter().append("g")
     .attr("class", "hover-value-group")
     .attr("transform", "translate(0,0)")
     //.attr("y",graph_container.y + graph_margin.top)
-    .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+    .style("opacity", function(d){ return d.visible ? 1 : 1e-6}) // Set opacity to zero 
 
+  //hoverValueGroup.exit().remove();
+  
   var hoverValueBG = hoverValueGroup.append('rect')
     .attr("width","200")
     .attr("height","30")
@@ -501,7 +529,7 @@ function drawChart(graphData,timelineData){
     .attr("x",10)
     .attr("y",0) // just gotta figure out location now.
     .attr("dy", ".35em")
-    .text(function(d){ return d.name + ": [Value]"; }) // todo add value
+    //.text(function(d){ return d.name + ": [Value]"; }) // todo add value
     .style("fill", function(d) { return graphColor(d.name); });
   
   
@@ -615,8 +643,8 @@ function drawChart(graphData,timelineData){
       // /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor. It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
       //alert(d["Pain"]);
       
-      hoverValueText.text(function(d){ return "" + roundToTwo( yScales[d.name](valueline[d.name]) ) + " " + d.name } );
-      hoverValueText.attr("y", function(d){ return yScales[d.name](valueline[d.name]); } );
+      hoverValueText.text(function(d){ return d.visible ? ("" + roundToTwo( valueline[d.name] ) + " " + d.name) : "" } );
+      hoverValueText.attr("y", function(d){ return d.visible ? yScales[d.name](valueline[d.name]) : 0 } );
       //hoverValueText.text(function(d){ return valueline[d.name]});
       //hoverValueGroup.attr("transform", "translate(0, " + function(d){ return yScales[d.name](valueline[d.name]); } + ")");
       //hoverValueGroup.attr("transform", "translate(0,"+function(d){ return yScales[d.name](valueline[d.name]); }+")");
@@ -638,20 +666,35 @@ function drawChart(graphData,timelineData){
   //////////////////
   checkbox.on("click", function(d){ // On click toggle d.visible 
     d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
-    measure.select("path")
-      .transition()
-      .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+    
+    // Add/Remove Check from box
     measure.select(".checkmark")
       .transition()
       .attr("display", function(d){ return d.visible ? "block" : "none"; });     
     
-    yAxis.scale(yScales[d.name]);
-    svg.select(".y.axis")
-      .call(yAxis)
-      .attr("fill", graphColor(d.name))
+    // Add/Remove Line Path from Graph
+    measure.select("path")
       .transition()
-      .style("opacity", d.visible ? 1 : 1e-6); // Set opacity to zero 
-    })
+      .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+    
+    // Add/Remove Hover Value Visibility
+    // var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
+    // .data(categories.filter(function(c){ return c.visible })); // Select nested data and append to new svg group elements
+    hoverValueGroup.style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+    
+    updateVisibleMeasures();
+    
+    drawYAxes();
+    // yAxis.scale(yScales[d.name]);
+    // svg.select(".y.axis")
+    //   .call(yAxis)
+    //   .attr("fill", graphColor(d.name))
+      //.transition()
+      //.style("opacity", d.visible ? 1 : 1e-6); // Set opacity to zero 
+  
+    
+    
+  })
     
     // = findMaxY(categories); // Find max Y rating value categories data with "visible"; true
     //yScale.domain([0,maxY]); // Redefine yAxis domain based on highest y value of categories data with "visible"; true
@@ -686,7 +729,10 @@ function drawChart(graphData,timelineData){
 ////////// 
 // HELPERS 
 //////////
- 
+
+  function updateVisibleMeasures(){
+    visibleMeasures = categories.filter(function(c){ return c.visible });
+  }
  
   // GENERATE GRAPH LINES FROM DATA
   function drawGraphLine(d){
