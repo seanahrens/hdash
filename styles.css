@@ -104,12 +104,17 @@ html, body {
   shape-rendering: crispEdges;
   /*opacity: 1e-6;*/
 }
-.hover-text {
+/*.hover-text {*/
   /*font-size: 14px; */
-  font-weight: normal;
-  fill: #000;
-  stroke-width: 0px;
+/*  font-weight: normal;*/
+/*  fill: #000;*/
+/*  stroke-width: 0px;*/
+/*}*/
+.hover-value-text {
+  font-weight: bold;
 }
+
+
 .tooltip {
   font-weight: normal;
 }

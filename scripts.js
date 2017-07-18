@@ -516,15 +516,16 @@ function drawChart(graphData,timelineData){
   //hoverValueGroup.exit().remove();
   
   var hoverValueBG = hoverValueGroup.append('rect')
-    .attr("width","200")
+    .attr("width","50")
     .attr("height","30")
     .attr("x", 0)
     .attr("y", -15)
-    .attr("fill", "#EEE")
+    .attr("fill", "#FFF")
     .attr("stroke-width", 0)
-    .style("opacity", 0.2);
+    .style("opacity", 0.5);
   
   var hoverValueText = hoverValueGroup.append('text')
+    .attr("class", "hover-value-text")
     .attr("text-anchor", "right")
     .attr("x",10)
     .attr("y",0) // just gotta figure out location now.
@@ -641,22 +642,11 @@ function drawChart(graphData,timelineData){
       // /*d0 is the combination of date and rating that is in the data array at the index to the left of the cursor and d1 is the combination of date and close that is in the data array at the index to the right of the cursor. In other words we now have two variables that know the value and date above and below the date that corresponds to the position of the cursor.*/
       var valueline = x0 - d0.date > d1.date - x0 ? d1 : d0;
       // /*The final line in this segment declares a new array d that is represents the date and close combination that is closest to the cursor. It is using the magic JavaScript short hand for an if statement that is essentially saying if the distance between the mouse cursor and the date and close combination on the left is greater than the distance between the mouse cursor and the date and close combination on the right then d is an array of the date and close on the right of the cursor (d1). Otherwise d is an array of the date and close on the left of the cursor (d0).*/
-      //alert(d["Pain"]);
-      
-      hoverValueText.text(function(d){ return d.visible ? ("" + roundToTwo( valueline[d.name] ) + " " + d.name) : "" } );
-      hoverValueText.attr("y", function(d){ return d.visible ? yScales[d.name](valueline[d.name]) : 0 } );
-      //hoverValueText.text(function(d){ return valueline[d.name]});
-      //hoverValueGroup.attr("transform", "translate(0, " + function(d){ return yScales[d.name](valueline[d.name]); } + ")");
-      //hoverValueGroup.attr("transform", "translate(0,"+function(d){ return yScales[d.name](valueline[d.name]); }+")");
 
-      //d is now the data row for the date closest to the mouse position
-
-      // SHOW THE VALUE OF THE DATA NEXT TO ITS LEGEND ITEM
-      // focus.select("text").text(function(columnName){
-      //   //because you didn't explictly set any data on the <text>
-      //   //elements, each one inherits the data from the focus <g>
-      //   return (d[columnName]);
-      // });
+      // Update the Hover Value Tooltips showing the data values on the graph
+      hoverValueGroup.attr("transform", function(d) { return "translate(0,"+yScales[d.name](valueline[d.name])+")" }); //" + function(d){ return yScales["Pain"](valueline[d.name]); } + ")");
+      hoverValueText.text(function(d){ return d.visible ? ("" + roundToTwo( valueline[d.name] )) : "" } );
+      hoverValueBG.attr("width", function(d){ return (20 + valueline[d.name].toString().length * 10) });
   } 
  
  
