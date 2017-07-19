@@ -1,7 +1,7 @@
 NEXT
 - enable hiding of timeline items below, and drag and drop reordering
 - clean up y-axis labels/scaling to better match gridlines
-
+- clean up efficiency of code (use less opacity tricks and rather use data binding remove tricks)
 
 COMPLETE
 X add line labels to left side of graph

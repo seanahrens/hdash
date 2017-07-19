@@ -42,7 +42,7 @@ function drawChart(graphData,timelineData){
       scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
       
       graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
-      graph_height = 450,
+      graph_height = 300,
       graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
       
       checkbox_size = 30,
@@ -449,7 +449,15 @@ function drawChart(graphData,timelineData){
     .text("Select Measures");
 
 
-  var lineLabel = measure.append("text")
+  
+  ///////////
+  // Line Labels
+  ///////////
+  var LineLabelContainer = svg.append("g");
+
+  var lineLabel = LineLabelContainer.selectAll(".line-label")
+    .data(categories)
+  .enter().append("text")
     .attr("class", "line-label")
     .text(function(d){ return d.name})
     .attr("x",chart_margin.left - 10)
@@ -457,7 +465,7 @@ function drawChart(graphData,timelineData){
     .style("text-anchor", "end")
   
   updateLineLabel();
-  
+
   function updateLineLabel(){
     var first_date = xScale.domain()[0];
     var firstValues = graphData[0];
@@ -469,19 +477,38 @@ function drawChart(graphData,timelineData){
       .attr("opacity", function(d){ return d.visible ? 1 : 0});
   }  
   
-  var legendGroup = measure.append("g")
-    .attr("class", "legend-group")
-    .attr("opacity", "0");
+  
+  
+  /////////////
+  // Legend Container
+  ////////////
+ 
+  var LegendContainer = svg.append("g")
+    .attr("opacity","0");
+ 
+  LegendContainer.append("rect")
+    .attr("opacity","0.5")
+    .attr("y", graph_container.y)
+    .attr("width", chart_margin.left - 10)
+    .attr("height", graph_container.height)
+    .attr("fill","#EEE")
+    .attr("stroke", "#000");
+
+  var legendItem = LegendContainer.selectAll(".legend-item")
+    .data(categories)
+  .enter().append("g")
+    .attr("class", "legend-item");
+
 
   // Legend Labels
-  legendGroup.append("text")
+  legendItem.append("text")
       .attr("class", "label")
       .attr("x", checkbox_size + 7) 
       .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
       .text(function(d) { return d.name; }); 
 
   // Checkboxes
-  var checkbox = legendGroup.append("rect")
+  var checkbox = legendItem.append("rect")
     .attr("class", "legend-box")
     .attr("width", checkbox_size)
     .attr("height", checkbox_size)                                    
@@ -492,7 +519,7 @@ function drawChart(graphData,timelineData){
     .style("stroke-width", 1.5) 
   
   // Label Text  
-  legendGroup.append("text")
+  legendItem.append("text")
     .attr("class", "checkmark")
     .attr("x", checkbox_size / 2) 
     .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
@@ -681,7 +708,7 @@ function drawChart(graphData,timelineData){
     d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
     
     // Add/Remove Check from box
-    measure.select(".checkmark")
+    legendItem.select(".checkmark")
       .transition()
       .attr("display", function(d){ return d.visible ? "block" : "none"; });     
     
@@ -703,12 +730,12 @@ function drawChart(graphData,timelineData){
   });
   
   legendToggleBtn.on("click", function(){
-    if (legendGroup.attr("opacity") == 1){
-      legendGroup.attr("opacity", "0");
-      legendGroup.style("pointer-events", "none");
+    if (LegendContainer.attr("opacity") == 1){
+      LegendContainer.attr("opacity", "0");
+      legendItem.style("pointer-events", "none");
     } else { 
-      legendGroup.attr("opacity", "1");
-      legendGroup.style("pointer-events", "all");
+      LegendContainer.attr("opacity", "1");
+      legendItem.style("pointer-events", "all");
     }
   });
  
