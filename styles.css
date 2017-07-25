@@ -80,6 +80,20 @@ html, body {
 }
 
 
+.link {
+  font-size: 15px;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.plus {
+  font-weight: bold;
+}
+
+.heading {
+  font-weight: bold;
+}
+
 /* LEGEND */
 .checkmark {
   font-size: 25px; 

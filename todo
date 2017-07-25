@@ -5,6 +5,8 @@ NEXT
 - fix NaN for hoverline
 
 - add ability to add events
+
+
 - clean up variable names (eg. timeline, events, measures, graph_data)
 - fix z-index of timeline events that are updated/added
 - clean up efficiency of code

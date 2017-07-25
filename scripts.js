@@ -35,11 +35,14 @@ function handleError(error){
 
 function drawChart(graphData,timelineData){  
 
+  
+
+
   // MARGINS, HEIGHTS, WIDTHS, ETC
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       
-      chart_margin = {top: 0, bottom: 0, right: 0, left: 200},
-      chart_width = 760,
+      chart_margin = {top: 0, bottom: 0, right: 30, left: 200},
+      chart_width = 700,
       
       scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
       scrubber_height = 50,
@@ -55,12 +58,17 @@ function drawChart(graphData,timelineData){
       timeline_margin = {top: 40, bottom: 20, right: 0, left: 0},
       timeline_row_height = 30,
       timeline_row_padding = 5,
-      timeline_height = timeline_row_height * timelineData.length + timeline_row_padding,
-      timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
-        
-      chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height,
-  
+
+      // set dynamically because these depend on how many timleine data are shown
+      timeline_height,
+      timeline_container,
+      chart_container_height,
+
       yAxisSpacing = 40;
+
+
+  updateVisibleEvents();
+  updateDynamicDimensions();
 
   //////////////
   // PROCESS THE DATA
@@ -68,7 +76,6 @@ function drawChart(graphData,timelineData){
   // measures = array of the measure names
   // graphData = array of hashes = [date, measure1, measure2, measure3]
   // categories = [] of :name, :values = {:date, :rating}, :max_rating, :visible
-  
   
   var measures = d3.keys(graphData[0]).filter(function(key) { // Set the domain of the color ordinal scale to be all the csv headers except "date", matching a color to an measure
     return key !== "date"; 
@@ -168,15 +175,22 @@ function drawChart(graphData,timelineData){
   // SVG - DRAW THE CANVAS
   //////
 
+  
   var svg = d3.select("body").append("svg")
     .attr("id", "svg")
     .attr("width", chart_width + chart_margin.left + chart_margin.right)
     .attr("height", chart_container_height+5);
 
+
+
+
+  /////// 
+  // INVISIBLE UTILITY RECTS
+  //////
+
   // MOUSE TRACKER (invisible rect)
-  svg.append("rect")
+  var mouseTracker = svg.append("rect")
     .attr("width", chart_width)
-    .attr("height", graph_height + graph_margin.bottom + timeline_margin.top + timeline_height)                                    
     .attr("x", chart_margin.left) 
     .attr("y", graph_container.y + graph_margin.top)
     .attr("id", "mouse-tracker")
@@ -275,14 +289,14 @@ function drawChart(graphData,timelineData){
     .scale(xScale)
     .orient("bottom")
     .ticks(10)
-    .tickSize(-timeline_container.height-graph_height, 0, 0)
     .tickFormat("");
   svg.append("g")         
       .attr("class", "grid")
       .attr("id","x-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(timeline_container.y+timeline_margin.top+timeline_height ) + ")")
-      .call(xGridlines);
-      
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")");
+  
+  redrawChartHeight();
+  
   // SCRUBBER X GRID
   var scrubberxGridlines = d3.svg.axis()
     .scale(scrubberxScale)
@@ -299,7 +313,6 @@ function drawChart(graphData,timelineData){
   //TIMELINE
   //////////
   
-  updateVisibleEvents();
   updateTimelineData();
   
   var event;
@@ -323,7 +336,7 @@ function drawChart(graphData,timelineData){
       .attr("x", chart_margin.left)
       .attr("y", timeline_row_padding)
       .attr("height", timeline_row_height - timeline_row_padding)
-      .attr("width", chart_width + chart_margin.left -5)
+      .attr("width", chart_width)
       .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
       .style("pointer-events", "none") // Stop line interferring with cursor
       .style("opacity", .2);
@@ -350,6 +363,14 @@ function drawChart(graphData,timelineData){
       .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
       .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
       .attr("d",function(d){ return generateTimelinePath(d.dates) });   
+
+    // EVENT ADD BTN
+    eventEnterGroup.append("text")
+    .attr("x",chart_width +chart_margin.left + 10)
+    .attr("y",25)
+    .text("+")
+    .attr("class","plus")
+    .style("text-anchor", "start");
 
     // Move all events into their appropriate position
     event.attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
@@ -458,16 +479,40 @@ function drawChart(graphData,timelineData){
   /////////////
   var legendSpace = graph_height / categories.length; // 450 (just changed to height)/number of measures (ex. 40)    
 
+
+  /////////////////
+  // LINKS
+  ////////////////
+  
   // BUTTON TO TOGGLE ON/OFF LINE SELECTION PANEL
   var legendToggleBtn = svg.append("g")
     .attr("class", "legend-toggle-btn")
     .attr("transform", "translate(20,50)");
   
   legendToggleBtn.append("text")
+    .attr("class","link")
     .text("Choose Visible Data");
 
+  svg.append("text")
+    .text("Log Update")
+    .attr("class","link")
+    .style("text-anchor", "end")
+    .attr("transform", "translate(915,270)rotate(90)");
+    
 
-  
+  // svg.append("text")
+  //   .text("Add Occurance of an Event")
+  //   .attr("class","link")
+  //   .style("text-anchor", "end")
+  // svg.append("text")
+  //   .text("Add New Event Type")
+  //   .attr("class","link")
+  //   .style("text-anchor", "start")
+  //   .attr("transform", "translate(320,770)");
+
+
+  legendToggleBtn.append("text")
+
   ///////////
   // Line Labels
   ///////////
@@ -495,6 +540,8 @@ function drawChart(graphData,timelineData){
       .attr("opacity", function(d){ return d.visible ? 1 : 0});
   }  
   
+  
+  // 
   
   
   /////////////
@@ -531,7 +578,24 @@ function drawChart(graphData,timelineData){
   
   function timelineToggleAction(d){
     updateVisibleEvents();
+    updateDynamicDimensions();
     updateTimelineData();
+    redrawChartHeight();
+  }
+  
+  function updateDynamicDimensions(){
+    timeline_height = timeline_row_height * visibleEvents.length + timeline_row_padding;
+    timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom };
+    chart_container_height = scrubber_container.height + graph_container.height + timeline_container.height;
+  }
+  
+  function redrawChartHeight(){
+    // Update X Gridlines
+    xGridlines.tickSize(timeline_container.height+graph_height, 0, 0);
+    svg.select("#x-gridlines").call(xGridlines);
+    
+    // Update Mouse Tracker Rect
+    mouseTracker.attr("height", graph_height + graph_margin.bottom + timeline_margin.top + timeline_height);                                   
   }
 
   var measureSelectGroup;
@@ -539,6 +603,24 @@ function drawChart(graphData,timelineData){
   var timelineSelectGroup;
   generateDataSelects("timeline-select-group",timelineSelectGroup, timelineData, timelineToggleAction, (timeline_container.y + timeline_margin.top), timelineColor);
 
+  LegendContainer.append("text")
+    .text("Measures")
+    .attr("class","heading")
+    .style("text-anchor", "start")
+    .attr("transform", "translate(10,90)");
+    
+
+  LegendContainer.append("text")
+    .text("Events")
+    .attr("class","heading")
+    .style("text-anchor", "start")
+    .attr("transform", "translate(10,450)");
+    
+  LegendContainer.append("text")
+    .text("Add New Event Type")
+    .attr("class","link")
+    .style("text-anchor", "start")
+    .attr("transform", "translate(10,730)");    
 
   function generateDataSelects(className,dataSelectGroup, data, toggleAction, start_y, colorScale){
     dataSelectGroup = LegendContainer.selectAll(className)
@@ -584,7 +666,6 @@ function drawChart(graphData,timelineData){
         .attr("display", function(d){ return d.visible ? "block" : "none"; });     
       
       toggleAction.call(d);
-      
     });
 
   }
@@ -691,7 +772,7 @@ function drawChart(graphData,timelineData){
     svg.select(".x.axis")
       .transition()
       .call(xAxis);
-    svg.select("#x-gridlines")     
+    svg.select("#x-gridlines")    
       .transition()
       .call(xGridlines);
     svg.select("#y-gridlines")     
