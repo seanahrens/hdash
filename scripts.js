@@ -86,6 +86,8 @@ function drawChart(graphData,timelineData){
   graphData.forEach(function(d) { d.date = parseDate(d.date); });
 
 
+  
+
   // FORMAT DATA FROM TSV INTO CATEGORY ARRAY
   var categories = measures.map(function(name) { // Nest the data into an array of objects with new keys
     var rating = 0;
@@ -106,14 +108,12 @@ function drawChart(graphData,timelineData){
       max_rating: highest_rating_so_far,
       visible: (name == "Daily Health" || name == "Steps" || name == "Sleep Disturbance" || name == "Depression") ? true : false // "visible": all false except for economy which is true.
     };
-     //yScales[name] = d3.scale.linear().range([graph_height, 0]).domain([0,highest_rating_so_far]);
   });
   
   updateVisibleMeasures();
 
 
   // SET UP COLOR DOMAINS
-  
   var graphColor = d3.scale.category20()
     .domain(measures);
   var timelineColor = d3.scale.category20c()
@@ -132,20 +132,12 @@ function drawChart(graphData,timelineData){
   
   /// Y SCALE
   var yScales = {}; 
-  //var yAxes = {};
-  //var yScaleBuckets = [1,2,4,6,8,10,20,40,60,80,100,200,400,600,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200,3400,3600,3800,4000,4200,8000,10000,20000,40000,80000,100000];
-  //var yScaleBuckets = [1,2,4,8,10,20,40,80,100,200,400,800,1000,2000,4000,8000,10000,20000,40000,80000,100000];
   var yScaleHundreds = ["Daily Health","Pain", "Fatigue", "Sleep Disturbance", "Anxiety", "Depression"]
   
   function findYScaleBucket(measure){
     if (yScaleHundreds.includes(measure.name))
       return 100;
     else
-      // var selected_bucket = 0;
-      // yScaleBuckets.some(function(val){
-      //   selected_bucket = val;
-      //   return (measure.max_rating < val);
-      // })
       return measure.max_rating;
   }
   categories.forEach(function(measure){
@@ -153,7 +145,6 @@ function drawChart(graphData,timelineData){
       .range([graph_height, 0])
       .domain([0,findYScaleBucket(measure)]);
     yScales[measure.name] = aScale;
-    //yAxes[measure.name] = d3.svg.axis().scale(aScale).orient("left");
   });
   
   var yScale = d3.scale.linear().range([graph_height, 0]);
@@ -325,7 +316,6 @@ function drawChart(graphData,timelineData){
     event = svg.selectAll(".event")
         .data(visibleEvents, function(d){return d.name;}); // Select nested data and append to new svg group elements
     
-    //console.log(visibleEvents);
     event.exit().remove();
     
     var eventEnterGroup = event.enter().append("g")
@@ -337,7 +327,8 @@ function drawChart(graphData,timelineData){
       .attr("y", timeline_row_padding)
       .attr("height", timeline_row_height - timeline_row_padding)
       .attr("width", chart_width)
-      .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
+      //.attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
+      .attr("fill", "#DDD")
       .style("pointer-events", "none") // Stop line interferring with cursor
       .style("opacity", .2);
   
@@ -402,12 +393,12 @@ function drawChart(graphData,timelineData){
   //plot the rect as the bar in the scrubber
   scrubber.append("path") // Path is created using svg.area details
     .attr("class", "area")
-    .attr("fill", "#DDD")
+    .attr("fill", "#FFF")
     .attr("d", scrubberArea(categories[0].values)) // pass first categories data .values to area path generator 
     //.attr("fill", "#F1F1F2");
 
   scrubber.append("rect")
-    .attr("fill","darkgrey")
+    .attr("fill","#DEDEDE")
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
     .attr("width", chart_width)
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
@@ -493,25 +484,15 @@ function drawChart(graphData,timelineData){
     .attr("class","link")
     .text("Choose Visible Data");
 
-  svg.append("text")
+  var editlink = svg.append("svg:a")
+    .attr("xlink:href", "https://cgibdweb-test.med.unc.edu/ccfapartners/updateHealthData.php?code=24662&visitid=2&category=promis&var=")
+    //.attr("target", "_blank")
+  editlink.append("text")
     .text("Log Update")
     .attr("class","link")
     .style("text-anchor", "end")
-    .attr("transform", "translate(915,270)rotate(90)");
-    
+    .attr("transform", "translate(915,270)rotate(90)");    
 
-  // svg.append("text")
-  //   .text("Add Occurance of an Event")
-  //   .attr("class","link")
-  //   .style("text-anchor", "end")
-  // svg.append("text")
-  //   .text("Add New Event Type")
-  //   .attr("class","link")
-  //   .style("text-anchor", "start")
-  //   .attr("transform", "translate(320,770)");
-
-
-  legendToggleBtn.append("text")
 
   ///////////
   // Line Labels
@@ -710,12 +691,10 @@ function drawChart(graphData,timelineData){
   // HOVER VALUES
   var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
     .data(categories); // Select nested data and append to new svg group elements
-    //.filter(function(c){ return c.visible })
   hoverValueGroup.enter().append("g")
     .attr("class", "hover-value-group")
     .attr("transform", "translate(0,0)")
-    //.attr("y",graph_container.y + graph_margin.top)
-    .style("opacity", function(d){ return d.visible ? 1 : 1e-6}) // Set opacity to zero 
+    .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
 
   //hoverValueGroup.exit().remove();
   
@@ -734,7 +713,6 @@ function drawChart(graphData,timelineData){
     .attr("x",10)
     .attr("y",0) // just gotta figure out location now.
     .attr("dy", ".35em")
-    //.text(function(d){ return d.name + ": [Value]"; }) // todo add value
     .style("fill", function(d) { return graphColor(d.name); });
   
   
@@ -950,22 +928,3 @@ function drawChart(graphData,timelineData){
   // function scaleY(){
   //   yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
   // }
-  
-  
-  
-  
-  
-  
-    // FRAMING OF SCALABLE ELEMENTS
-
-  // svg.append("rect")
-  //   .attr("width", chart_width)
-  //   .attr("height", graph_height+graph_margin.bottom+timeline_margin.top+timeline_height)                                    
-  //   .attr("x", chart_margin.left) 
-  //   .attr("y", graph_container.y+graph_margin.top)
-  //   .attr("fill", "none")
-  //   .attr("stroke", "#000" )
-  //   .style("stroke-width", 1.5) 
-
-
-

@@ -1,4 +1,7 @@
 NEXT
+
+
+
 - add y-axis label
 - clean up y-axis labels/scaling to better match gridlines
 - make lines have dots
@@ -26,3 +29,4 @@ x enable hiding of timeline items below, and drag and drop reordering
 	x add a visible key to the timeline data. toggle that on and off.
 	x use "select measures" menu to modify timeline data shown
 	x use data binding for result set instead of opacity
+x link out to Log Update
