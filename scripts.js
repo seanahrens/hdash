@@ -1,6 +1,7 @@
 /* global d3 */
 /* global yAxis */
 /* global visibleMeasures */
+/* global visibleEvents */
 
 ////////////////
 // LOAD TSVS AND HANDLE graphData
@@ -48,7 +49,7 @@ function drawChart(graphData,timelineData){
       graph_height = 300,
       graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
       
-      checkbox_size = 30,
+      checkbox_size = 20,
       
       
       timeline_margin = {top: 40, bottom: 20, right: 0, left: 0},
@@ -105,6 +106,7 @@ function drawChart(graphData,timelineData){
 
 
   // SET UP COLOR DOMAINS
+  
   var graphColor = d3.scale.category20()
     .domain(measures);
   var timelineColor = d3.scale.category20c()
@@ -297,45 +299,62 @@ function drawChart(graphData,timelineData){
   //TIMELINE
   //////////
   
-  var event_categories = [];
+  updateVisibleEvents();
+  updateTimelineData();
+  
+  var event;
+  
+  function updateTimelineData(){
+    
+    var event_categories = [];
+  
+    // MAIN TIMELINE BOUNDING BOX
+    event = svg.selectAll(".event")
+        .data(visibleEvents, function(d){return d.name;}); // Select nested data and append to new svg group elements
+    
+    //console.log(visibleEvents);
+    event.exit().remove();
+    
+    var eventEnterGroup = event.enter().append("g")
+      .attr("class", "event");
 
-  // MAIN TIMELINE BOUNDING BOX
-  var event = svg.selectAll(".event")
-      .data(timelineData) // Select nested data and append to new svg group elements
-    .enter().append("g")
-      .attr("class", "event")
-      .attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
+    // BACKGROUND ROW FOR EACH EVENT
+    eventEnterGroup.append("rect")
+      .attr("x", chart_margin.left)
+      .attr("y", timeline_row_padding)
+      .attr("height", timeline_row_height - timeline_row_padding)
+      .attr("width", chart_width + chart_margin.left -5)
+      .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
+      .style("pointer-events", "none") // Stop line interferring with cursor
+      .style("opacity", .2);
+  
+    // LABELS FOR EACH EVENT
+    eventEnterGroup.append("text")
+      .attr("x",chart_margin.left - 10)
+      .style("fill", function(d) { return timelineColor(d.name); })
+      .style("text-anchor", "end")
+      .attr("class","timeline-label label")
+      .text(function(d) { return d.name})
+      .attr("dy", timeline_row_height - timeline_row_padding - 3);
+  
+  
+    // TIMELINE LINES
+    eventEnterGroup.append("path")
+      .attr("class", "timeline-line")
+      .style("pointer-events", "none") // Stop line interferring with cursor
+      .attr("id", function(d) {
+        return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
+      })
+      .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
+      .style("stroke", function(d) { return timelineColor(d.name); })
+      .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
+      .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
+      .attr("d",function(d){ return generateTimelinePath(d.dates) });   
 
-  // BACKGROUND ROW FOR EACH EVENT
-  event.append("rect")
-    .attr("x", 0)
-    .attr("y", timeline_row_padding)
-    .attr("height", timeline_row_height - timeline_row_padding)
-    .attr("width", chart_width + chart_margin.left -5)
-    .attr("fill", function(d){ return (d.type != "Medication") ? "#777" : "#BBB"})
-    .style("pointer-events", "none") // Stop line interferring with cursor
-    .style("opacity", .2) 
+    // Move all events into their appropriate position
+    event.attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
 
-  // LABELS FOR EACH EVENT
-  event.append("text")
-    .attr("x", 5)
-    .attr("class","timeline-label label")
-    .text(function(d) { return d.name})
-    .attr("dy", timeline_row_height - timeline_row_padding - 3);
-
-  // TIMELINE LINES
-  event.append("path")
-    .attr("class", "timeline-line")
-    .style("pointer-events", "none") // Stop line interferring with cursor
-    .attr("id", function(d) {
-      return "event-line-" + d.name.replace(" ", "").replace("/", ""); // Give line id of line-(insert measure name, with any spaces replaced with no spaces)
-    })
-    .attr("transform", "translate("+chart_margin.left+","+timeline_row_padding*1.5+")")
-    .style("stroke", function(d) { return timelineColor(d.name); })
-    .style("stroke-width", (timeline_row_height-(timeline_row_padding*2))*2)
-    .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
-    .attr("d",function(d){ return generateTimelinePath(d.dates) });   
-
+  }
 
 
 
@@ -444,10 +463,6 @@ function drawChart(graphData,timelineData){
     .attr("class", "legend-toggle-btn")
     .attr("transform", "translate(20,50)");
   
-  // legendToggleBtn.append("rect")
-  //   .attr("class", "legend-toggle-btn")
-  //   .attr("width",100)
-  //   .attr("height",40);
   legendToggleBtn.append("text")
     .text("Choose Visible Data");
 
@@ -490,7 +505,7 @@ function drawChart(graphData,timelineData){
     .attr("opacity","0");
  
   LegendContainer.append("rect")
-    .attr("opacity","0.5")
+    .attr("opacity","0.7")
     .attr("y", graph_container.y)
     .attr("width", chart_margin.left - 40)
     .attr("height", graph_container.height + timeline_container.height)
@@ -513,21 +528,19 @@ function drawChart(graphData,timelineData){
       
       drawYAxes();
   }
+  
   function timelineToggleAction(d){
-    event
-      .transition()
-      .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
-      
-    console.log("event toggled");
+    updateVisibleEvents();
+    updateTimelineData();
   }
 
   var measureSelectGroup;
-  generateDataSelects("measure-select-group",measureSelectGroup, categories, measureToggleAction, (graph_container.y+graph_margin.top));
+  generateDataSelects("measure-select-group",measureSelectGroup, categories, measureToggleAction, (graph_container.y+graph_margin.top), graphColor);
   var timelineSelectGroup;
-  generateDataSelects("timeline-select-group",timelineSelectGroup, timelineData, timelineToggleAction, (timeline_container.y + timeline_margin.top));
+  generateDataSelects("timeline-select-group",timelineSelectGroup, timelineData, timelineToggleAction, (timeline_container.y + timeline_margin.top), timelineColor);
 
 
-  function generateDataSelects(className,dataSelectGroup, data, toggleAction, start_y){
+  function generateDataSelects(className,dataSelectGroup, data, toggleAction, start_y, colorScale){
     dataSelectGroup = LegendContainer.selectAll(className)
       .data(data)
     .enter().append("g")
@@ -536,8 +549,8 @@ function drawChart(graphData,timelineData){
     // Legend Labels
     dataSelectGroup.append("text")
         .attr("class", "label")
-        .attr("x", checkbox_size + 7) 
-        .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+        .attr("x", checkbox_size + 17) 
+        .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) + checkbox_size / 6; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
         .text(function(d) { return d.name; }); 
   
     // Checkboxes
@@ -545,17 +558,17 @@ function drawChart(graphData,timelineData){
       .attr("class", "legend-box")
       .attr("width", checkbox_size)
       .attr("height", checkbox_size)                                    
-      .attr("x", 0) 
+      .attr("x", 10) 
       .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) -14; })  // spacing
-      .attr("fill",function(d) { return graphColor(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
+      .attr("fill",function(d) { return colorScale(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
       .attr("stroke", "#000" )
       .style("stroke-width", 1.5);
     
     // Label Text  
     var checkmark = dataSelectGroup.append("text")
       .attr("class", "checkmark")
-      .attr("x", checkbox_size / 2) 
-      .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+      .attr("x", checkbox_size / 2 + 10) 
+      .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) + checkbox_size / 5; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
       .text("x")
       .style("text-anchor", "middle")
       .attr("display", function(d) { return d.visible ? "block" : "none"; });
@@ -566,7 +579,6 @@ function drawChart(graphData,timelineData){
     //////////////////
     dataSelectGroup.on("click", function(d){ // On click toggle d.visible 
       d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
-      
       // Add/Remove Check from box
       d3.select(this).select(".checkmark")
         .attr("display", function(d){ return d.visible ? "block" : "none"; });     
@@ -576,40 +588,6 @@ function drawChart(graphData,timelineData){
     });
 
   }
-
-  // var legendItem = LegendContainer.selectAll(".legend-item")
-  //   .data(categories)
-  // .enter().append("g")
-  //   .attr("class", "legend-item");
-
-  // // Legend Labels
-  // legendItem.append("text")
-  //     .attr("class", "label")
-  //     .attr("x", checkbox_size + 7) 
-  //     .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
-  //     .text(function(d) { return d.name; }); 
-
-  // // Checkboxes
-  // var checkbox = legendItem.append("rect")
-  //   .attr("class", "legend-box")
-  //   .attr("width", checkbox_size)
-  //   .attr("height", checkbox_size)                                    
-  //   .attr("x", 0) 
-  //   .attr("y", function (d, i) { return graph_container.y + graph_margin.top + (legendSpace)+i*(legendSpace) -14; })  // spacing
-  //   .attr("fill",function(d) { return graphColor(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
-  //   .attr("stroke", "#000" )
-  //   .style("stroke-width", 1.5) 
-  
-  // // Label Text  
-  // legendItem.append("text")
-  //   .attr("class", "checkmark")
-  //   .attr("x", checkbox_size / 2) 
-  //   .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
-  //   .text("x")
-  //   .style("text-anchor", "middle")
-  //   .attr("display", function(d) { return d.visible ? "block" : "none"; })
-  //   .style("pointer-events", "none");
-
 
 
 
@@ -804,6 +782,10 @@ function drawChart(graphData,timelineData){
 
   function updateVisibleMeasures(){
     visibleMeasures = categories.filter(function(c){ return c.visible });
+  }
+  
+  function updateVisibleEvents(){
+    visibleEvents = timelineData.filter(function(c){ return c.visible });
   }
  
   // GENERATE GRAPH LINES FROM DATA

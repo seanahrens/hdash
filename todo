@@ -1,13 +1,12 @@
 NEXT
-- enable hiding of timeline items below, and drag and drop reordering
-	x extract checkbox making functionality out into reusable code
-	x enable it to operate on a second data set with a second set of clickable elements
-	x add a visible key to the timeline data. toggle that on and off.
-	x use "select measures" menu to modify timeline data shown
-	- use data binding for result set instead of opacity
-	- clean up variable names (eg. timeline, events, measures, graph_data)
+- add y-axis label
 - clean up y-axis labels/scaling to better match gridlines
 - make lines have dots
+- fix NaN for hoverline
+
+- add ability to add events
+- clean up variable names (eg. timeline, events, measures, graph_data)
+- fix z-index of timeline events that are updated/added
 - clean up efficiency of code
      - (use less opacity tricks and rather use data binding remove tricks)
      - use css to style, not js
@@ -19,3 +18,9 @@ X box the legend menu
 X add line labels to left side of graph
 X add values to vertical line in bubbles as it hovers over the graph
 x make timeline height smaller
+x enable hiding of timeline items below, and drag and drop reordering
+	x extract checkbox making functionality out into reusable code
+	x enable it to operate on a second data set with a second set of clickable elements
+	x add a visible key to the timeline data. toggle that on and off.
+	x use "select measures" menu to modify timeline data shown
+	x use data binding for result set instead of opacity

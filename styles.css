@@ -82,7 +82,7 @@ html, body {
 
 /* LEGEND */
 .checkmark {
-  font-size: 30px; 
+  font-size: 25px; 
   font-weight: bold;
   text-anchor: top;
 }
@@ -97,6 +97,7 @@ html, body {
 }
 
 .timeline-label {
+  font-weight: bold;
 }
 
 
