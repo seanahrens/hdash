@@ -93,9 +93,11 @@ html, body {
 }
 
 .label {
-  /*font-size: 12px;*/
+  font-size: 13px;
 }
 
+.timeline-label {
+}
 
 
 /* HOVER EFFECTS */

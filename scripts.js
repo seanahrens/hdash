@@ -14,6 +14,9 @@ d3.tsv("graph_data.tsv", function(error, graphData) {
         if (error)
           handleError(error);
         else
+          timelineData.forEach(function(d) {
+            d.visible = (d.visible == 'true');
+          });
           drawChart(graphData, timelineData);
       });
 });
@@ -49,7 +52,7 @@ function drawChart(graphData,timelineData){
       
       
       timeline_margin = {top: 40, bottom: 20, right: 0, left: 0},
-      timeline_row_height = 40,
+      timeline_row_height = 30,
       timeline_row_padding = 5,
       timeline_height = timeline_row_height * timelineData.length + timeline_row_padding,
       timeline_container = { y: graph_container.y+graph_container.height, height: timeline_height + timeline_margin.top + timeline_margin.bottom },
@@ -316,7 +319,7 @@ function drawChart(graphData,timelineData){
   // LABELS FOR EACH EVENT
   event.append("text")
     .attr("x", 5)
-    .attr("class","label")
+    .attr("class","timeline-label label")
     .text(function(d) { return d.name})
     .attr("dy", timeline_row_height - timeline_row_padding - 3);
 
@@ -446,7 +449,7 @@ function drawChart(graphData,timelineData){
   //   .attr("width",100)
   //   .attr("height",40);
   legendToggleBtn.append("text")
-    .text("Select Measures");
+    .text("Choose Visible Data");
 
 
   
@@ -470,7 +473,7 @@ function drawChart(graphData,timelineData){
     var first_date = xScale.domain()[0];
     var firstValues = graphData[0];
     var i = bisectDate(graphData, first_date, 1); // use our bisectDate function that we declared earlier to find the index of our data array that is close to the mouse cursor
-    console.log(i)
+    //console.log(i)
   
     lineLabel
       .attr("y",function(d){ return graph_container.y+graph_margin.top+yScales[d.name](graphData[i][d.name]) })
@@ -480,7 +483,7 @@ function drawChart(graphData,timelineData){
   
   
   /////////////
-  // Legend Container
+  // ITEM SELECT MENU
   ////////////
  
   var LegendContainer = svg.append("g")
@@ -489,44 +492,123 @@ function drawChart(graphData,timelineData){
   LegendContainer.append("rect")
     .attr("opacity","0.5")
     .attr("y", graph_container.y)
-    .attr("width", chart_margin.left - 10)
-    .attr("height", graph_container.height)
+    .attr("width", chart_margin.left - 40)
+    .attr("height", graph_container.height + timeline_container.height)
     .attr("fill","#EEE")
     .attr("stroke", "#000");
 
-  var legendItem = LegendContainer.selectAll(".legend-item")
-    .data(categories)
-  .enter().append("g")
-    .attr("class", "legend-item");
+  function measureToggleAction(d){
+      // Add/Remove Line Path from Graph
+      measure.select("path")
+        .transition()
+        .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+      
+      // Add/Remove Hover Value Visibility
+      // var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
+      // .data(categories.filter(function(c){ return c.visible })); // Select nested data and append to new svg group elements
+      hoverValueGroup.style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+      
+      updateVisibleMeasures();
+      updateLineLabel();
+      
+      drawYAxes();
+  }
+  function timelineToggleAction(d){
+    event
+      .transition()
+      .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
+      
+    console.log("event toggled");
+  }
+
+  var measureSelectGroup;
+  generateDataSelects("measure-select-group",measureSelectGroup, categories, measureToggleAction, (graph_container.y+graph_margin.top));
+  var timelineSelectGroup;
+  generateDataSelects("timeline-select-group",timelineSelectGroup, timelineData, timelineToggleAction, (timeline_container.y + timeline_margin.top));
 
 
-  // Legend Labels
-  legendItem.append("text")
-      .attr("class", "label")
-      .attr("x", checkbox_size + 7) 
-      .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
-      .text(function(d) { return d.name; }); 
-
-  // Checkboxes
-  var checkbox = legendItem.append("rect")
-    .attr("class", "legend-box")
-    .attr("width", checkbox_size)
-    .attr("height", checkbox_size)                                    
-    .attr("x", 0) 
-    .attr("y", function (d, i) { return graph_container.y + graph_margin.top + (legendSpace)+i*(legendSpace) -14; })  // spacing
-    .attr("fill",function(d) { return graphColor(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
-    .attr("stroke", "#000" )
-    .style("stroke-width", 1.5) 
+  function generateDataSelects(className,dataSelectGroup, data, toggleAction, start_y){
+    dataSelectGroup = LegendContainer.selectAll(className)
+      .data(data)
+    .enter().append("g")
+      .attr("class", className);
   
-  // Label Text  
-  legendItem.append("text")
-    .attr("class", "checkmark")
-    .attr("x", checkbox_size / 2) 
-    .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
-    .text("x")
-    .style("text-anchor", "middle")
-    .attr("display", function(d) { return d.visible ? "block" : "none"; })
-    .style("pointer-events", "none");
+    // Legend Labels
+    dataSelectGroup.append("text")
+        .attr("class", "label")
+        .attr("x", checkbox_size + 7) 
+        .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+        .text(function(d) { return d.name; }); 
+  
+    // Checkboxes
+    var dataSelectCheckbox = dataSelectGroup.append("rect")
+      .attr("class", "legend-box")
+      .attr("width", checkbox_size)
+      .attr("height", checkbox_size)                                    
+      .attr("x", 0) 
+      .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) -14; })  // spacing
+      .attr("fill",function(d) { return graphColor(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
+      .attr("stroke", "#000" )
+      .style("stroke-width", 1.5);
+    
+    // Label Text  
+    var checkmark = dataSelectGroup.append("text")
+      .attr("class", "checkmark")
+      .attr("x", checkbox_size / 2) 
+      .attr("y", function (d, i) { return start_y + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+      .text("x")
+      .style("text-anchor", "middle")
+      .attr("display", function(d) { return d.visible ? "block" : "none"; });
+      //.style("pointer-events", "all");
+
+    //////////////////
+    // GRAPH CHECKBOX INTERACTION
+    //////////////////
+    dataSelectGroup.on("click", function(d){ // On click toggle d.visible 
+      d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
+      
+      // Add/Remove Check from box
+      d3.select(this).select(".checkmark")
+        .attr("display", function(d){ return d.visible ? "block" : "none"; });     
+      
+      toggleAction.call(d);
+      
+    });
+
+  }
+
+  // var legendItem = LegendContainer.selectAll(".legend-item")
+  //   .data(categories)
+  // .enter().append("g")
+  //   .attr("class", "legend-item");
+
+  // // Legend Labels
+  // legendItem.append("text")
+  //     .attr("class", "label")
+  //     .attr("x", checkbox_size + 7) 
+  //     .attr("y", function (d, i) { return graph_container.y +graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+  //     .text(function(d) { return d.name; }); 
+
+  // // Checkboxes
+  // var checkbox = legendItem.append("rect")
+  //   .attr("class", "legend-box")
+  //   .attr("width", checkbox_size)
+  //   .attr("height", checkbox_size)                                    
+  //   .attr("x", 0) 
+  //   .attr("y", function (d, i) { return graph_container.y + graph_margin.top + (legendSpace)+i*(legendSpace) -14; })  // spacing
+  //   .attr("fill",function(d) { return graphColor(d.name) }) // If array key "visible" = true then graphColor rect, if not then make it grey  //return d.visible ? color(d.name) : "#F1F1F2"; // If array key "visible" = true then color rect, if not then make it grey 
+  //   .attr("stroke", "#000" )
+  //   .style("stroke-width", 1.5) 
+  
+  // // Label Text  
+  // legendItem.append("text")
+  //   .attr("class", "checkmark")
+  //   .attr("x", checkbox_size / 2) 
+  //   .attr("y", function (d, i) { return scrubber_container.height+graph_margin.top + (legendSpace)+i*(legendSpace) + checkbox_size / 4; })  // (return (11.25/2 =) 5.625) + i * (5.625) 
+  //   .text("x")
+  //   .style("text-anchor", "middle")
+  //   .attr("display", function(d) { return d.visible ? "block" : "none"; })
+  //   .style("pointer-events", "none");
 
 
 
@@ -701,41 +783,15 @@ function drawChart(graphData,timelineData){
  
  
  
-  //////////////////
-  // GRAPH CHECKBOX INTERACTION
-  //////////////////
-  checkbox.on("click", function(d){ // On click toggle d.visible 
-    d.visible = !d.visible; // If array key for this data selection is "visible" = true then make it false, if false then make it true
-    
-    // Add/Remove Check from box
-    legendItem.select(".checkmark")
-      .transition()
-      .attr("display", function(d){ return d.visible ? "block" : "none"; });     
-    
-    // Add/Remove Line Path from Graph
-    measure.select("path")
-      .transition()
-      .style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
-    
-    // Add/Remove Hover Value Visibility
-    // var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
-    // .data(categories.filter(function(c){ return c.visible })); // Select nested data and append to new svg group elements
-    hoverValueGroup.style("opacity", function(d){ return d.visible ? 1 : 1e-6}); // Set opacity to zero 
-    
-    updateVisibleMeasures();
-    updateLineLabel();
-    
-    drawYAxes();
-    
-  });
+
   
   legendToggleBtn.on("click", function(){
     if (LegendContainer.attr("opacity") == 1){
       LegendContainer.attr("opacity", "0");
-      legendItem.style("pointer-events", "none");
+      //measureSelectGroup.style("pointer-events", "none");
     } else { 
       LegendContainer.attr("opacity", "1");
-      legendItem.style("pointer-events", "all");
+      //measureSelectGroup.style("pointer-events", "all");
     }
   });
  
