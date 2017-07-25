@@ -1,13 +1,16 @@
 NEXT
 
+- create edit menu
+	- add ability to add events
 
+- y-axis improvemnts
+	- clean up y-axis labels/scaling to better match gridlines
+	- make y-axis labels max at 3 digits and one char (aka 1, 10, 100, 1k, 10k, 100k, 1m)     
+	- make line labels show event when the data isn't on the far left of the graph
 
-- add y-axis label
-- clean up y-axis labels/scaling to better match gridlines
 - make lines have dots
 - fix NaN for hoverline
 
-- add ability to add events
 
 
 - clean up variable names (eg. timeline, events, measures, graph_data)
@@ -16,7 +19,8 @@ NEXT
      - (use less opacity tricks and rather use data binding remove tricks)
      - use css to style, not js
      - change evals to preferred convention
-     
+
+
      
 COMPLETE
 X box the legend menu
@@ -30,3 +34,4 @@ x enable hiding of timeline items below, and drag and drop reordering
 	x use "select measures" menu to modify timeline data shown
 	x use data binding for result set instead of opacity
 x link out to Log Update
+x add y-axis label

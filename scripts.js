@@ -41,14 +41,14 @@ function drawChart(graphData,timelineData){
   // MARGINS, HEIGHTS, WIDTHS, ETC
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       
-      chart_margin = {top: 0, bottom: 0, right: 30, left: 200},
+      chart_margin = {top: 0, bottom: 0, right: 60, left: 200},
       chart_width = 700,
       
       scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
       scrubber_height = 50,
       scrubber_container = { height: scrubber_height + scrubber_margin.top + scrubber_margin.bottom, y: chart_margin.top},
       
-      graph_margin = {top: 20, bottom: 20, right: 0, left: 0},
+      graph_margin = {top: 50, bottom: 20, right: 0, left: 0},
       graph_height = 300,
       graph_container = { y: chart_margin.top + scrubber_container.height, height: graph_height + graph_margin.top + graph_margin.bottom },
       
@@ -248,10 +248,15 @@ function drawChart(graphData,timelineData){
           .orient("left")
           .ticks(5);
         axis(d3.select(this));
-      });
+      })
+      .append("text")
+        .attr("x", -15)
+        .attr("y", -15)
+        .text(function(d){ return d.name })
+        .attr("transform", "rotate(-20)");
+        //.attr("text-anchor", "start");
       
-    yAxis
-      .attr("transform", function(d) { return "translate("+eval(chart_width+chart_margin.left + (-yAxisSpacing * visibleMeasures.indexOf(d)) )+", "+eval(graph_container.y+graph_margin.top)+")" })
+    yAxis.attr("transform", function(d) { return "translate("+eval(chart_width+chart_margin.left + (-yAxisSpacing * visibleMeasures.indexOf(d)) )+", "+eval(graph_container.y+graph_margin.top)+")" });
 
       
   }
@@ -356,7 +361,7 @@ function drawChart(graphData,timelineData){
       .attr("d",function(d){ return generateTimelinePath(d.dates) });   
 
     // EVENT ADD BTN
-    eventEnterGroup.append("text")
+    var addEventOccuranceBtn = eventEnterGroup.append("text")
     .attr("x",chart_width +chart_margin.left + 10)
     .attr("y",25)
     .text("+")
@@ -366,6 +371,10 @@ function drawChart(graphData,timelineData){
     // Move all events into their appropriate position
     event.attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
 
+    addEventOccuranceBtn.on("click", function(d){
+      alert(d.name + ": This will allow you to add an occurance.")
+    });
+    
   }
 
 
@@ -393,12 +402,13 @@ function drawChart(graphData,timelineData){
   //plot the rect as the bar in the scrubber
   scrubber.append("path") // Path is created using svg.area details
     .attr("class", "area")
-    .attr("fill", "#FFF")
-    .attr("d", scrubberArea(categories[0].values)) // pass first categories data .values to area path generator 
+    .attr("fill", "none")
+    .attr("d", scrubberArea(categories[0].values)); // pass first categories data .values to area path generator 
     //.attr("fill", "#F1F1F2");
 
   scrubber.append("rect")
     .attr("fill","#DEDEDE")
+    .attr("opacity", "0.5")
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
     .attr("width", chart_width)
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
@@ -410,7 +420,7 @@ function drawChart(graphData,timelineData){
       .call(scrubberxGridlines);
 
   scrubber.append("g") // Create scrubber xAxis
-      .attr("class", "x axis")
+      .attr("class", "scrubber-dates")
       .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top ) + ")")
       .call(scrubberxAxis);
 
@@ -588,20 +598,23 @@ function drawChart(graphData,timelineData){
     .text("Measures")
     .attr("class","heading")
     .style("text-anchor", "start")
-    .attr("transform", "translate(10,90)");
+    .attr("transform", "translate(10,120)");
     
 
   LegendContainer.append("text")
     .text("Events")
     .attr("class","heading")
     .style("text-anchor", "start")
-    .attr("transform", "translate(10,450)");
+    .attr("transform", "translate(10,480)");
     
   LegendContainer.append("text")
     .text("Add New Event Type")
     .attr("class","link")
     .style("text-anchor", "start")
-    .attr("transform", "translate(10,730)");    
+    .attr("transform", "translate(10,780)")   
+    .on("click", function(d){
+      alert("This will allow you to add a new event type.")
+    });
 
   function generateDataSelects(className,dataSelectGroup, data, toggleAction, start_y, colorScale){
     dataSelectGroup = LegendContainer.selectAll(className)
