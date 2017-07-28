@@ -10,26 +10,46 @@ html, body {
 }
 
 
+circle {
+  fill-opacity: 0.2;
+  transition: fill-opacity 250ms linear;
+}
+
+circle.active {
+  stroke: #f00;
+}
+
+
 /* SCRUBBER */
 
 .scrubber {
   /*stroke: #000;*/
 }
 
+.scrubber-label {
+  font-size: 14px;
+  fill: #666;
+}
+
+
+.graph-title, .timeline-title {
+  font-size: 14px;
+  fill: #666;
+}
+
+
 .scrubber-dates {
   font-size: 12px;
 }
 
 .scrubber-grid .tick {
-    stroke: #333;
+    stroke: #CCC;
     opacity: 0.7;
 }
 .brush {
-  stroke: black;
-  stroke-width: 2px;
   fill: lightgreen;
   shape-rendering: crispEdges;
-  opacity: 0.5;
+  opacity: 0.7;
 }
 
 
@@ -157,6 +177,6 @@ html, body {
 }
 
 .line-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
 }

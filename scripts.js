@@ -86,7 +86,8 @@ function drawChart(graphData,timelineData){
   graphData.forEach(function(d) { d.date = parseDate(d.date); });
 
 
-  
+  var yScaleHundreds = ["Daily Health","Pain", "Fatigue", "Sleep Disturbance", "Anxiety", "Depression"]
+
 
   // FORMAT DATA FROM TSV INTO CATEGORY ARRAY
   var categories = measures.map(function(name) { // Nest the data into an array of objects with new keys
@@ -106,6 +107,7 @@ function drawChart(graphData,timelineData){
           };
       }),
       max_rating: highest_rating_so_far,
+      yDomainMax: yScaleHundreds.includes(name) ? 100 : highest_rating_so_far,
       visible: (name == "Daily Health" || name == "Steps" || name == "Sleep Disturbance" || name == "Depression") ? true : false // "visible": all false except for economy which is true.
     };
   });
@@ -128,22 +130,12 @@ function drawChart(graphData,timelineData){
   //////////////
   // SCALES
   //////////////
-  
-  
-  /// Y SCALE
-  var yScales = {}; 
-  var yScaleHundreds = ["Daily Health","Pain", "Fatigue", "Sleep Disturbance", "Anxiety", "Depression"]
-  
-  function findYScaleBucket(measure){
-    if (yScaleHundreds.includes(measure.name))
-      return 100;
-    else
-      return measure.max_rating;
-  }
+  var yScales = {};
+
   categories.forEach(function(measure){
     var aScale = d3.scale.linear()
       .range([graph_height, 0])
-      .domain([0,findYScaleBucket(measure)]);
+      .domain([0,measure.yDomainMax]);
     yScales[measure.name] = aScale;
   });
   
@@ -198,7 +190,52 @@ function drawChart(graphData,timelineData){
   
   
   
+  /////////////
+  // GRIDLINES
+  ////////////
   
+  // Y GRID
+  var yGridlines = d3.svg.axis()
+    .scale(yScale)
+    .orient("left")
+    .ticks(5)
+    .tickSize(-chart_width, 0, 0)
+    .tickFormat("");
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","y-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
+      .call(yGridlines);
+      
+  // X GRID
+  var xGridlines = d3.svg.axis()
+    .scale(xScale)
+    .orient("bottom")
+    .ticks(10)
+    .tickFormat("");
+  svg.append("g")         
+      .attr("class", "grid")
+      .attr("id","x-gridlines")
+      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")");
+  
+  redrawChartHeight();
+  
+  // SCRUBBER X GRID
+  var scrubberxGridlines = d3.svg.axis()
+    .scale(scrubberxScale)
+    .tickFormat("")
+    .ticks(10)
+    .tickSize(scrubber_height, 0, 0);
+
+
+  // WHITE RECT TO HIDE GRID BETWEEEN GRAPH AND TIMELINE
+  svg.append("rect")
+    .attr("x", chart_margin.left)
+    .attr("y", graph_container.y + graph_margin.top + graph_height)
+    .attr("height", graph_margin.bottom + timeline_margin.top + timeline_row_padding)
+    .attr("width", chart_width)
+    .attr("fill", "#FFF");
+
   
   
   /////////
@@ -243,9 +280,13 @@ function drawChart(graphData,timelineData){
       .attr("class", "yAxis")
       .attr("fill", function(d){ return graphColor(d.name) })
       .each(function(d) { // IMPORTANT FOR UNDERSTANDING THIS: https://stackoverflow.com/questions/19040846/create-axes-using-data-binding-in-d3
+        
+
         var axis = d3.svg.axis()
           .scale(yScales[d.name])
           .orient("left")
+          .tickValues([0,d.yDomainMax*1/5,d.yDomainMax*2/5,d.yDomainMax*3/5,d.yDomainMax*4/5,d.yDomainMax])
+          .tickFormat(function(d) { return abbrNum(d,1); })
           .ticks(5);
         axis(d3.select(this));
       })
@@ -263,44 +304,6 @@ function drawChart(graphData,timelineData){
 
 
 
-  /////////////
-  // GRIDLINES
-  ////////////
-  
-  // Y GRID
-  var yGridlines = d3.svg.axis()
-    .scale(yScale)
-    .orient("left")
-    .ticks(10)
-    .tickSize(-chart_width, 0, 0)
-    .tickFormat("");
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","y-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")")
-      .call(yGridlines);
-      
-  // X GRID
-  var xGridlines = d3.svg.axis()
-    .scale(xScale)
-    .orient("bottom")
-    .ticks(10)
-    .tickFormat("");
-  svg.append("g")         
-      .attr("class", "grid")
-      .attr("id","x-gridlines")
-      .attr("transform", "translate("+eval(chart_margin.left+graph_margin.left)+"," + eval(graph_container.y+graph_margin.top) + ")");
-  
-  redrawChartHeight();
-  
-  // SCRUBBER X GRID
-  var scrubberxGridlines = d3.svg.axis()
-    .scale(scrubberxScale)
-    .tickFormat("")
-    .ticks(10)
-    .tickSize(scrubber_height, 0, 0);  
-
- 
 
 
 
@@ -308,6 +311,16 @@ function drawChart(graphData,timelineData){
   //////////
   //TIMELINE
   //////////
+  
+  
+  // TIMELINE TEXT TITLE
+  svg.append("text")
+    .attr("class", "timeline-title")
+    .text("Timeline")
+    .style("text-anchor", "end")
+    .attr("x", chart_margin.left - 10)
+    .attr("y", (timeline_container.y + timeline_margin.top - 5));
+    
   
   updateTimelineData();
   
@@ -419,6 +432,7 @@ function drawChart(graphData,timelineData){
       .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top) + ")")
       .call(scrubberxGridlines);
 
+
   scrubber.append("g") // Create scrubber xAxis
       .attr("class", "scrubber-dates")
       .attr("transform", "translate(0," + eval(scrubber_container.y + scrubber_margin.top ) + ")")
@@ -441,13 +455,38 @@ function drawChart(graphData,timelineData){
     .attr("height", scrubber_height*2/3) // Make brush rects same height 
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/6));
 
+  // var handle = scrubber.append("rect")
+  //   .attr("class", "something")
+  //   .style("fill", "#000")
+  //   .attr("height", scrubber_height*2/3) // Make brush rects same height 
+  //   .attr("width", 5);
+
+  // SCRUBBER TEXT LABEL
+  scrubber.append("text")
+    .attr("class", "scrubber-label")
+    .text("Select Date Range to Show (Strech and Pan the Green Box)")
+    .style("text-anchor", "middle")
+    .style("pointer-events", "none") // Stop line interferring with cursor
+    .attr("x", chart_width /2 )
+    .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/2 + 5));
+
 
   
 
 
   /////////////////
-  // GRAPH LINES
+  // GRAPH 
   /////////////////
+  
+  
+  // GRAPH TEXT LABEL
+  svg.append("text")
+    .attr("class", "graph-title")
+    .text("Time Series")
+    .style("text-anchor", "end")
+    .attr("x", chart_margin.left - 10)
+    .attr("y", (graph_container.y + graph_margin.top - 10));
+  
   
   // GENERATE LINES
   var line = d3.svg.line()
@@ -547,7 +586,7 @@ function drawChart(graphData,timelineData){
     .attr("y", graph_container.y)
     .attr("width", chart_margin.left - 40)
     .attr("height", graph_container.height + timeline_container.height)
-    .attr("fill","#EEE")
+    .attr("fill","#FCFCFC")
     .attr("stroke", "#000");
 
   function measureToggleAction(d){
@@ -743,7 +782,6 @@ function drawChart(graphData,timelineData){
  
  
 
-  /////////
   /// SCRUBBER MOVEMENT RESPONSE
   ////////
  
@@ -757,6 +795,30 @@ function drawChart(graphData,timelineData){
       d3.selectAll("#fake-brush").classed("brush",true);
     else
       d3.selectAll("#fake-brush").classed("brush",false);
+  
+  
+    // console.log(brush.extent()[0]);
+    // handle.attr("transform","translate("+xScale(brush.extent()[0])+",0)");   
+ 
+    // var x = d3.scale.linear().range([0, chart_width]),
+    // y = d3.random.normal(scrubber_height / 2, scrubber_height / 8);
+    
+    // var s = d3.event.selection;
+    
+    // if (s == null) {
+    //   //handle.attr("display", "none");
+    //   //circle.classed("active", false);
+    //   console.log(brush.extent()[0]);
+    //   handle.attr("transform","translate("+xScale(brush.extent()[0])+",0)");
+    // } else {
+    //   //var sx = s.map(x.invert);
+    //   // handle.attr("x",xScale(brush.extent()[0]));
+    //   // console.log
+    //   //handle.attr("transform", function(d, i) { return "translate(" + [ s[i], - scrubber_height / 4] + ")"; });
+    // }
+
+   
+   
    
     // RESCALE AXES
     xScale.domain(brush.empty() ? scrubberxScale.domain() : brush.extent()); // If brush is empty then reset the Xscale domain to default, if not then make it the brush extent 
@@ -941,3 +1003,39 @@ function drawChart(graphData,timelineData){
   // function scaleY(){
   //   yScale.domain([d3.min(categories.filter( function(c) { return c.visible }), function(c) { return d3.min(c.values, function(v) { return v.rating; }); }), d3.max(categories.filter( function(c) { return c.visible }), function(c) { return d3.max(c.values, function(v) { return v.rating; }); })]);
   // }
+
+function abbrNum(number, decPlaces) {
+    // 2 decimal places => 100, 3 => 1000, etc
+    decPlaces = Math.pow(10,decPlaces);
+
+    // Enumerate number abbreviations
+    var abbrev = [ "k", "m", "b", "t" ];
+
+    // Go through the array backwards, so we do the largest first
+    for (var i=abbrev.length-1; i>=0; i--) {
+
+        // Convert array index to "1000", "1000000", etc
+        var size = Math.pow(10,(i+1)*3);
+
+        // If the number is bigger or equal do the abbreviation
+        if(size <= number) {
+             // Here, we multiply by decPlaces, round, and then divide by decPlaces.
+             // This gives us nice rounding to a particular decimal place.
+             number = Math.round(number*decPlaces/size)/decPlaces;
+
+             // Handle special case where we round up to the next abbreviation
+             if((number == 1000) && (i < abbrev.length - 1)) {
+                 number = 1;
+                 i++;
+             }
+
+             // Add the letter for the abbreviation
+             number += abbrev[i];
+
+             // We are done... stop
+             break;
+        }
+    }
+
+    return number;
+}

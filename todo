@@ -1,20 +1,26 @@
 NEXT
 
-- create edit menu
-	- add ability to add events
+- design edit menu
+	- update data
+	- add new types of events
+	- should all these features be bundled in the edit menu?
+	- fix z-index of timeline events that are updated/added
+	- sort events
 
-- y-axis improvemnts
-	- clean up y-axis labels/scaling to better match gridlines
-	- make y-axis labels max at 3 digits and one char (aka 1, 10, 100, 1k, 10k, 100k, 1m)     
+- Hide Y-Axis visibility
+
+- labels, lines, values
+	- make lines have dots
+	- fix NaN for hoverline
 	- make line labels show event when the data isn't on the far left of the graph
 
-- make lines have dots
-- fix NaN for hoverline
+- round up the y-axis-max of values (397->400, 65.5k->70k, 71->80,12.9k->13k,55->60)
+
+- add handles to scrubber and/or lines to graph
 
 
-
-- clean up variable names (eg. timeline, events, measures, graph_data)
-- fix z-index of timeline events that are updated/added
+CODE CLEANUP
+- clean up coded variable names (eg. timeline, events, measures, graph_data)
 - clean up efficiency of code
      - (use less opacity tricks and rather use data binding remove tricks)
      - use css to style, not js
@@ -35,3 +41,10 @@ x enable hiding of timeline items below, and drag and drop reordering
 	x use data binding for result set instead of opacity
 x link out to Log Update
 x add y-axis label
+x Label More
+	x Scrubber: "Date Select: Select Date Range to Display"
+	x Graph: "Health Variables"
+	x Timeline: "Event Timeline"
+x y-axis improvemnts
+	x clean up y-axis labels/scaling to better match gridlines
+	x make y-axis labels max at 3 digits and one char (aka 1, 10, 100, 1k, 10k, 100k, 1m)     
