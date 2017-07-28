@@ -1,22 +1,19 @@
 NEXT
 
-- design edit menu
-	- update data
-	- add new types of events
-	- should all these features be bundled in the edit menu?
-	- fix z-index of timeline events that are updated/added
-	- sort events
+- Add / Edit Info
+	x added buttons to start the functionality
 
-- Hide Y-Axis visibility
+
+- fix z-index of timeline events that are updated/added
 
 - labels, lines, values
 	- make lines have dots
-	- fix NaN for hoverline
 	- make line labels show event when the data isn't on the far left of the graph
 
 - round up the y-axis-max of values (397->400, 65.5k->70k, 71->80,12.9k->13k,55->60)
-
 - add handles to scrubber and/or lines to graph
+
+- sort events
 
 
 CODE CLEANUP
@@ -48,3 +45,4 @@ x Label More
 x y-axis improvemnts
 	x clean up y-axis labels/scaling to better match gridlines
 	x make y-axis labels max at 3 digits and one char (aka 1, 10, 100, 1k, 10k, 100k, 1m)     
+x fix NaN for hoverline

@@ -41,7 +41,7 @@ function drawChart(graphData,timelineData){
   // MARGINS, HEIGHTS, WIDTHS, ETC
   var svg_margin = {top: 0, bottom: 0, right: 0, left: 20},
       
-      chart_margin = {top: 0, bottom: 0, right: 60, left: 200},
+      chart_margin = {top: 0, bottom: 20, right: 60, left: 200},
       chart_width = 700,
       
       scrubber_margin = { top: 20, bottom: 0, right: 0, left: 0},
@@ -64,7 +64,10 @@ function drawChart(graphData,timelineData){
       timeline_container,
       chart_container_height,
 
-      yAxisSpacing = 40;
+      yAxisSpacing = 40,
+      
+      btn_width = 100,
+      btn_height = 25;
 
 
   updateVisibleEvents();
@@ -162,7 +165,7 @@ function drawChart(graphData,timelineData){
   var svg = d3.select("body").append("svg")
     .attr("id", "svg")
     .attr("width", chart_width + chart_margin.left + chart_margin.right)
-    .attr("height", chart_container_height+5);
+    .attr("height", chart_container_height+chart_margin.top + chart_margin.bottom);
 
 
 
@@ -285,7 +288,8 @@ function drawChart(graphData,timelineData){
         var axis = d3.svg.axis()
           .scale(yScales[d.name])
           .orient("left")
-          .tickValues([0,d.yDomainMax*1/5,d.yDomainMax*2/5,d.yDomainMax*3/5,d.yDomainMax*4/5,d.yDomainMax])
+          .tickValues([0,d.yDomainMax])
+          //.tickValues([0,d.yDomainMax*1/5,d.yDomainMax*2/5,d.yDomainMax*3/5,d.yDomainMax*4/5,d.yDomainMax])
           .tickFormat(function(d) { return abbrNum(d,1); })
           .ticks(5);
         axis(d3.select(this));
@@ -373,20 +377,20 @@ function drawChart(graphData,timelineData){
       .attr("clip-path", "url(#clip)")//use clip path to make irrelevant part invisible
       .attr("d",function(d){ return generateTimelinePath(d.dates) });   
 
-    // EVENT ADD BTN
-    var addEventOccuranceBtn = eventEnterGroup.append("text")
-    .attr("x",chart_width +chart_margin.left + 10)
-    .attr("y",25)
-    .text("+")
-    .attr("class","plus")
-    .style("text-anchor", "start");
+    // // EVENT ADD BTN
+    // var addEventOccuranceBtn = eventEnterGroup.append("text")
+    // .attr("x",chart_width +chart_margin.left + 10)
+    // .attr("y",25)
+    // .text("+")
+    // .attr("class","plus")
+    // .style("text-anchor", "start");
 
     // Move all events into their appropriate position
     event.attr("transform", function(d,i) { return "translate(0, "+eval(timeline_container.y+timeline_margin.top+i*timeline_row_height) +")"});
 
-    addEventOccuranceBtn.on("click", function(d){
-      alert(d.name + ": This will allow you to add an occurance.")
-    });
+    // addEventOccuranceBtn.on("click", function(d){
+    //   alert(d.name + ": This will allow you to add an occurance.")
+    // });
     
   }
 
@@ -471,6 +475,29 @@ function drawChart(graphData,timelineData){
     .attr("y", (scrubber_container.y + scrubber_margin.top + scrubber_height/2 + 5));
 
 
+  /////////////////
+  // VISIBLE EYES (to open menu)
+  ////////////////
+  
+  var eye = svg.append("g");
+  
+  
+  eye.append("image")
+    .attr("class", "eye")
+    .attr("xlink:href", "images/eye.svg")
+    .attr("height","20")
+    .attr("x", chart_margin.left)
+    .attr("y", (graph_container.y + graph_margin.top - 25));
+
+  eye.append("image")
+    .attr("class", "eye")
+    .attr("xlink:href", "images/eye.svg")
+    .attr("height","20")
+    .attr("x", chart_margin.left)
+    .attr("y", (timeline_container.y + timeline_margin.top - 20));
+
+
+  
   
 
 
@@ -486,6 +513,38 @@ function drawChart(graphData,timelineData){
     .style("text-anchor", "end")
     .attr("x", chart_margin.left - 10)
     .attr("y", (graph_container.y + graph_margin.top - 10));
+  
+
+  generateBtn("Log Update", function(){alert("update haha!");})
+    .attr("transform", "translate("+eval(chart_margin.left+chart_width - btn_width)+","+ eval(graph_container.y + graph_height + graph_margin.top + graph_margin.bottom + 15)+")");
+
+
+  
+  generateBtn("Add Event", function(){alert("event haha!!");})
+    .attr("transform", "translate("+eval(chart_margin.left+chart_width - btn_width)+","+ eval(timeline_container.y + timeline_margin.top + timeline_margin.bottom + timeline_height - 10)+")");
+
+  
+  
+  function generateBtn(text, fx){
+    var btn = svg.append("g")
+      .attr("class", "btn")
+    btn.append("rect")
+      .attr("width", btn_width)
+      .attr("height", btn_height)
+      .attr("ry",5)
+      .attr("rx",5);      
+    btn.append("text")
+      .text(text)
+      .attr("x", btn_width/2)
+      .attr("dy","1.3em")
+      .style("text-anchor", "middle")
+      .style("pointer-events", "none");
+    btn.on("click", fx);
+    return btn;
+  }  
+
+  
+  
   
   
   // GENERATE LINES
@@ -525,22 +584,19 @@ function drawChart(graphData,timelineData){
   ////////////////
   
   // BUTTON TO TOGGLE ON/OFF LINE SELECTION PANEL
-  var legendToggleBtn = svg.append("g")
-    .attr("class", "legend-toggle-btn")
-    .attr("transform", "translate(20,50)");
+  // var legendToggleBtn = svg.append("g")
+  //   .attr("class", "legend-toggle-btn")
+  //   .attr("transform", "translate(20,50)");
   
-  legendToggleBtn.append("text")
-    .attr("class","link")
-    .text("Choose Visible Data");
 
-  var editlink = svg.append("svg:a")
-    .attr("xlink:href", "https://cgibdweb-test.med.unc.edu/ccfapartners/updateHealthData.php?code=24662&visitid=2&category=promis&var=")
-    //.attr("target", "_blank")
-  editlink.append("text")
-    .text("Log Update")
-    .attr("class","link")
-    .style("text-anchor", "end")
-    .attr("transform", "translate(915,270)rotate(90)");    
+  // var editlink = svg.append("svg:a")
+  //   .attr("xlink:href", "https://cgibdweb-test.med.unc.edu/ccfapartners/updateHealthData.php?code=24662&visitid=2&category=promis&var=")
+  //   //.attr("target", "_blank")
+  // editlink.append("text")
+  //   .text("Log Update")
+  //   .attr("class","link")
+  //   .style("text-anchor", "end")
+  //   .attr("transform", "translate(915,270)rotate(90)");    
 
 
   ///////////
@@ -583,11 +639,13 @@ function drawChart(graphData,timelineData){
  
   LegendContainer.append("rect")
     .attr("opacity","0.7")
+    .attr("rx",5)
+    .attr("ry",5)
     .attr("y", graph_container.y)
     .attr("width", chart_margin.left - 40)
     .attr("height", graph_container.height + timeline_container.height)
     .attr("fill","#FCFCFC")
-    .attr("stroke", "#000");
+    .attr("stroke", "#333");
 
   function measureToggleAction(d){
       // Add/Remove Line Path from Graph
@@ -634,26 +692,33 @@ function drawChart(graphData,timelineData){
   generateDataSelects("timeline-select-group",timelineSelectGroup, timelineData, timelineToggleAction, (timeline_container.y + timeline_margin.top), timelineColor);
 
   LegendContainer.append("text")
-    .text("Measures")
+    .text("Visible Data")
+    .attr("class","visible-heading")
+    .style("text-anchor", "start")
+    .attr("transform", "translate(10,90)");
+    
+
+  LegendContainer.append("text")
+    .text("Time Series")
     .attr("class","heading")
     .style("text-anchor", "start")
     .attr("transform", "translate(10,120)");
     
 
   LegendContainer.append("text")
-    .text("Events")
+    .text("Timeline")
     .attr("class","heading")
     .style("text-anchor", "start")
     .attr("transform", "translate(10,480)");
     
-  LegendContainer.append("text")
-    .text("Add New Event Type")
-    .attr("class","link")
-    .style("text-anchor", "start")
-    .attr("transform", "translate(10,780)")   
-    .on("click", function(d){
-      alert("This will allow you to add a new event type.")
-    });
+  // LegendContainer.append("text")
+  //   .text("Add New Event Type")
+  //   .attr("class","link")
+  //   .style("text-anchor", "start")
+  //   .attr("transform", "translate(10,780)")   
+  //   .on("click", function(d){
+  //     alert("This will allow you to add a new event type.")
+  //   });
 
   function generateDataSelects(className,dataSelectGroup, data, toggleAction, start_y, colorScale){
     dataSelectGroup = LegendContainer.selectAll(className)
@@ -889,7 +954,7 @@ function drawChart(graphData,timelineData){
 
       // Update the Hover Value Tooltips showing the data values on the graph
       hoverValueGroup.attr("transform", function(d) { return "translate(0,"+yScales[d.name](valueline[d.name])+")" }); //" + function(d){ return yScales["Pain"](valueline[d.name]); } + ")");
-      hoverValueText.text(function(d){ return d.visible ? ("" + roundToTwo( valueline[d.name] )) : "" } );
+      hoverValueText.text(function(d){ return (d.visible && !isNaN(roundToTwo(valueline[d.name]))) ? ("" + roundToTwo( valueline[d.name] )) : "" } );
       hoverValueBG.attr("width", function(d){ return (20 + valueline[d.name].toString().length * 10) });
   } 
  
@@ -897,7 +962,7 @@ function drawChart(graphData,timelineData){
  
 
   
-  legendToggleBtn.on("click", function(){
+  eye.on("click", function(){
     if (LegendContainer.attr("opacity") == 1){
       LegendContainer.attr("opacity", "0");
       //measureSelectGroup.style("pointer-events", "none");
@@ -951,6 +1016,7 @@ function drawChart(graphData,timelineData){
   
   
   function roundToTwo(num) {    
+    //return Math.round(num * 100) / 100;
     return +(Math.round(num + "e+2")  + "e-2");
   }
   

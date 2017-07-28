@@ -1,6 +1,6 @@
 
 body {
-  font: 18px sans-serif;
+  font: 12px sans-serif;
   background-color: white;
 }
 
@@ -116,7 +116,14 @@ circle.active {
 
 .heading {
   font-weight: bold;
+  font-size: 14px;
 }
+
+.visible-heading {
+  font-weight: bold;
+  font-size: 16px;
+}
+
 
 /* LEGEND */
 .checkmark {
@@ -179,4 +186,26 @@ circle.active {
 .line-label {
   font-size: 13px;
   font-weight: bold;
+}
+
+
+.btn {
+  cursor: pointer;
+}
+.btn rect {
+  fill: #EFEFEF;
+  stroke: lightgray;
+}
+.btn rect:hover {
+  fill: #EFEFEF;
+  stroke: gray;
+}
+.btn text {
+  font-size: 12px;
+  fill: #333;
+}
+
+.eye {
+  opacity: 0.5;
+  cursor: pointer;
 }
