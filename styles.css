@@ -209,3 +209,7 @@ circle.active {
   opacity: 0.5;
   cursor: pointer;
 }
+
+.hover-date-text {
+  font-size: 15px;
+}

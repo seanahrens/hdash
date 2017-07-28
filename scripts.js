@@ -514,38 +514,6 @@ function drawChart(graphData,timelineData){
     .attr("x", chart_margin.left - 10)
     .attr("y", (graph_container.y + graph_margin.top - 10));
   
-
-  generateBtn("Log Update", function(){alert("update haha!");})
-    .attr("transform", "translate("+eval(chart_margin.left+chart_width - btn_width)+","+ eval(graph_container.y + graph_height + graph_margin.top + graph_margin.bottom + 15)+")");
-
-
-  
-  generateBtn("Add Event", function(){alert("event haha!!");})
-    .attr("transform", "translate("+eval(chart_margin.left+chart_width - btn_width)+","+ eval(timeline_container.y + timeline_margin.top + timeline_margin.bottom + timeline_height - 10)+")");
-
-  
-  
-  function generateBtn(text, fx){
-    var btn = svg.append("g")
-      .attr("class", "btn")
-    btn.append("rect")
-      .attr("width", btn_width)
-      .attr("height", btn_height)
-      .attr("ry",5)
-      .attr("rx",5);      
-    btn.append("text")
-      .text(text)
-      .attr("x", btn_width/2)
-      .attr("dy","1.3em")
-      .style("text-anchor", "middle")
-      .style("pointer-events", "none");
-    btn.on("click", fx);
-    return btn;
-  }  
-
-  
-  
-  
   
   // GENERATE LINES
   var line = d3.svg.line()
@@ -801,9 +769,9 @@ function drawChart(graphData,timelineData){
     .attr("stroke-width", 0)
     
   var hoverDate = hoverDateGroup.append('text')
-    .attr("class", "hover-text")
+    .attr("class", "hover-date-text")
     .attr("text-anchor", "middle")
-    .attr("dy","1.05em")
+    .attr("dy","1.25em")
 
   // HOVER VALUES
   var hoverValueGroup = d3.select(".hover-line-group").selectAll(".hover-value-group")
@@ -975,9 +943,83 @@ function drawChart(graphData,timelineData){
  
  
  
+ 
+  ////////////////
+  // OVERLAYS
+  ///////////////
+ 
+  var logUpdateOverlay = svg.append("g")
+    .attr("transform","translate("+chart_margin.left+","+graph_container.y+")")
+    .attr("class","toggle-one")
+    .attr("display", "none");
+  logUpdateOverlay.append("rect")
+    .attr("opacity","0.7")
+    .attr("rx",5)
+    .attr("ry",5)
+    .attr("width", 400)
+    .attr("height", 400)
+    .attr("fill","#FCFCFC")
+    .attr("stroke", "#333");
+  logUpdateOverlay.append("text")
+      .text("Log Update Flow Goes Here")
+      .attr("dy","1em");
+
+  var addEventOverlay = svg.append("g")
+    .attr("transform","translate("+chart_margin.left+","+graph_container.y+")")
+    .attr("class","toggle-one")
+    .attr("display", "none");
+  addEventOverlay.append("rect")
+    .attr("opacity","0.7")
+    .attr("rx",5)
+    .attr("ry",5)
+    .attr("width", 400)
+    .attr("height", 400)
+    .attr("fill","#FCFCFC")
+    .attr("stroke", "#333");
+  addEventOverlay.append("text")
+      .text("Add Event Flow Goes Here")
+      .attr("dy","1em");
+    
+    
+  // TRIGGER BUTTONS
+  generateBtn("Log Update", function(){ toggleVisible(logUpdateOverlay); })
+    .attr("transform", "translate("+eval(chart_margin.left+chart_width - btn_width)+","+ eval(graph_container.y + graph_height + graph_margin.top + graph_margin.bottom + 15)+")");
+
+
+  generateBtn("Add Event", function(){ toggleVisible(addEventOverlay); })
+    .attr("transform", "translate("+eval(chart_margin.left+chart_width - btn_width)+","+ eval(timeline_container.y + timeline_margin.top + timeline_margin.bottom + timeline_height - 10)+")");
+
+
+ 
+ 
 ////////// 
 // HELPERS 
 //////////
+
+  function toggleVisible(div) {
+    var state = div.attr("display");
+    svg.selectAll(".toggle-one").attr("display","none");
+    div.attr("display", state == "none" ? "block" : "none");
+  }
+
+
+  function generateBtn(text, fx){
+    var btn = svg.append("g")
+      .attr("class", "btn")
+    btn.append("rect")
+      .attr("width", btn_width)
+      .attr("height", btn_height)
+      .attr("ry",5)
+      .attr("rx",5);      
+    btn.append("text")
+      .text(text)
+      .attr("x", btn_width/2)
+      .attr("dy","1.3em")
+      .style("text-anchor", "middle")
+      .style("pointer-events", "none");
+    btn.on("click", fx);
+    return btn;
+  }  
 
   function updateVisibleMeasures(){
     visibleMeasures = categories.filter(function(c){ return c.visible });
